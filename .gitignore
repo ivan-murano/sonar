@@ -9,3 +9,5 @@ build/selftest.txt
 selftest.txt
 models/*/code/
 *.part
+build/netdiag.txt
+netdiag.txt
