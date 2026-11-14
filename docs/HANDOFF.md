@@ -146,3 +146,18 @@ L'utente non è uno sviluppatore e non vuole toccare file: la prossima chat eseg
 - `build\output\AAA_DIAG.cmd` ricostruisce (`BUILD_WINDOWS.cmd < nul`, log in `build_log.txt`) e reinstalla in un colpo; esito in `install_esito2.txt`. `INSTALLA_PROVA.cmd` installa soltanto. Sono file di servizio, non del repository.
 - La VM `device_bash` non ha rete; `%LOCALAPPDATA%\Sonar` non è accessibile (richiesta di accesso negata): registri e cache non leggibili da lì.
 - Le schermate consumano molto: preferire `zoom` su regioni piccole e controlli via file.
+
+## 10. Aggiornamento del 14/11/2026, pomeriggio (questa sessione)
+
+**Fatto e verificato**
+- Ramo `fix-lookup-thread` controllato: la copia sul PC coincideva con il ramo (md5 file per file).
+- **Pharos Noise**: nome del modello allineato in AUTORI, note del manifest (senza "M3"/"Barcellona"), MODEL.md, note di rilascio, prima riga del registro. `m3_barcellona` resta identificativo interno. Restano "M3" in testi prodotti dal codice del modello (righe del registro, `*_metadata.json`): richiesta in `HANDOFF_MODEL.md` §8.
+- **Controllo della consegna di Melfi** (`D:\noise_pollution\tests\test0\Sonar_Melfi_2026-11-14_1539`): GPKG con `layer_styles` e 2 layer (12.731 celle, 19.222 segmenti, EPSG:32633, 38 campi), File Geodatabase con 4 feature class, 4 `.lyrx`, PNG, 4 dati di input, LEGGIMI/LICENZA/AUTORI, `fonti_dati.json`: tutto presente e coerente. Correzioni: nome del modello; nota nel LEGGIMI su «Ripara origine dati» (i `.lyrx` hanno il percorso assoluto del .gdb).
+- **Decibel e salute** (richiesta dell'utente): i dB sono logaritmici, quindi le fasce si combinano in energia. Sonar ora calcola **Lden e Lnight indicativi** (Direttiva 2002/49/CE, `sonar_app/export/health.py`) dai sei campi orari dichiarati nel manifest (`indicators`, `map_fields[].hours`). Le mappe sono state **asciugate**: una sola tavola PNG per output (feriale/festivo × Lden/Lnight) al posto di 4 tavole da 6 riquadri; i livelli per fascia restano nei dati GIS. Stile predefinito di GPKG e `.lyrx`: Lden; stili aggiuntivi Lnight e LAeq 09–13.
+- **Scala delle mappe**: classi a passi regolari in dB adattate alla città (Melfi: Lden 56–68, Lnight 50–60, passi di 2 dB), una sola scala per indicatore su tutte le tavole. Le classi ancorate alle soglie OMS 2018 (53 dB Lden, 45 dB Lnight per il traffico stradale) sono pronte (`"scale": "who"`) ma **non attive**: con i valori attuali del modello anche la campagna di Melfi ha Lden ≈ 57,8 e Lnight ≈ 50,5 dB, quindi il 100% del territorio risulterebbe sopra soglia (indicazione non sostenibile). LEGGIMI e tavole dichiarano che i valori non vanno confrontati con le soglie OMS.
+- 21 test superati (nuovo `tests/test_health.py`: somma energetica, copertura delle 24 ore, passi regolari, scala OMS).
+- Installer ricostruito e installato (AAA_DIAG: BUILD 0, INSTALL 0, selftest OK); prova con Melfi nell'app installata: OK in 297 s, consegna `D:\noise_pollution\tests\test0\Sonar_Melfi_2026-11-14_1633` controllata (nome Pharos Noise, campi `lden_ind`/`lnight_ind`, 3 stili per layer, 2 PNG, GDB 4 layer). Correzione successiva: nomi degli stili QGIS non più troncati.
+
+**Note pratiche**
+- In Esplora file la finestra resta su `build\output`: per ricostruire basta un doppio clic su `AAA_DIAG`. Chiudere prima l'app Sonar.
+- Il pulsante *Avvia* di Sonar a volte non riceve il primo clic se compare la finestra di Claude: riprovare.

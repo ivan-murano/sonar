@@ -137,10 +137,10 @@ def export_results(model, outputs: dict, root: Path, city, boundary_path: Path, 
             frame.to_file(target, layer=name, driver='GPKG', engine='pyogrio')
             laeq_field = output['style_field']
             laeq_label = f'{aliases.get(laeq_field, laeq_field)}'
-            entries = [(f'{name} · {item["label"]}', styles.qml(item, item['field'], kind, title, aliases),
+            entries = [(pick(item['title'], language), styles.qml(item, item['field'], kind, title, aliases),
                         styles.sld(item, item['field'], kind, name, title), f'{title} · {item["label"]}')
                        for item in indicator_styles.values()]
-            entries.append((f'{name} · {laeq_field}' if entries else name, styles.qml(style, laeq_field, kind, title, aliases),
+            entries.append((laeq_label[:30] if entries else name, styles.qml(style, laeq_field, kind, title, aliases),
                             styles.sld(style, laeq_field, kind, name, title), f'{title} · {laeq_label}' if entries else title))
             add_gpkg_styles(target, name, entries)
             done += 1

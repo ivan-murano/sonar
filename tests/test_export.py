@@ -49,6 +49,8 @@ def test_delivery_folder(tmp_path, model_output, square_city, language):
     with sqlite3.connect(gpkg) as con:
         assert con.execute('SELECT COUNT(*) FROM layer_styles').fetchone()[0] == 3 * len(layers)  # Lden, Lnight, LAeq
         default_qml = con.execute('SELECT styleQML FROM layer_styles WHERE useAsDefault LIMIT 1').fetchone()[0]
+        names = {r[0] for r in con.execute('SELECT styleName FROM layer_styles')}
+    assert all(len(n) <= 30 for n in names) and len(names) == 3
     assert 'attr="lden_ind"' in default_qml
     fields = pyogrio.read_info(gpkg, layer=layers[0])['fields']
     assert {'lden_ind', 'lnight_ind', 'laeq_09_13'} <= set(fields)
