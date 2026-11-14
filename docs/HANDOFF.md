@@ -163,3 +163,11 @@ L'utente non è uno sviluppatore e non vuole toccare file: la prossima chat eseg
 **Note pratiche**
 - In Esplora file la finestra resta su `build\output`: per ricostruire basta un doppio clic su `AAA_DIAG`. Chiudere prima l'app Sonar.
 - Il pulsante *Avvia* di Sonar a volte non riceve il primo clic se compare la finestra di Claude: riprovare.
+
+## 11. Feature statiche accelerate (14/11/2026, sera)
+
+- Parigi (su un altro PC, più potente) richiedeva 9.153 s, quasi tutti nella fase «4/6 Feature statiche».
+- `sonar_app/fastfeatures.py`: stesso calcolo del modello in forma vettoriale e su più processi; l'adattatore lo inserisce a runtime, i file del modello non cambiano (dettagli in `HANDOFF_MODEL.md` §9). A ogni esecuzione il modello verifica 100 ricevitori contro il proprio riferimento.
+- Misure sul PC di sviluppo (12 thread logici): Napoli, 107.855 ricevitori, fase feature da ~10 min a 56 s (13 s di verifica + 42 s su 6 processi), differenza massima 3,7e-9; elaborazione completa 540 s, di cui ~4 min di download.
+- Prossimi colli di bottiglia per le città grandi, nel codice del modello: ricevitori (43 s a Napoli), previsione (83 s), più l'esportazione di Sonar (43 s).
+- `SONAR_FAST_FEATURES=0` ripristina il calcolo originale; `SONAR_FEATURE_WORKERS=n` fissa il numero di processi.
