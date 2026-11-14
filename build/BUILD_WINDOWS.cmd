@@ -51,6 +51,7 @@ if errorlevel 1 goto fail
 if errorlevel 1 goto fail
 
 rem --- eseguibile -------------------------------------------------------------
+if "%SONAR_SKIP_EXE%"=="1" if exist dist\Sonar\Sonar.exe goto exe_ready
 if exist dist\Sonar rmdir /s /q dist\Sonar
 "%PY%" -m PyInstaller --noconfirm --clean --distpath dist --workpath build\pyinstaller build\sonar.spec
 if errorlevel 1 goto fail
@@ -60,29 +61,36 @@ if errorlevel 1 goto fail
 copy /y LICENSE.txt dist\Sonar\ >nul
 copy /y AUTHORS.txt dist\Sonar\ >nul
 copy /y THIRD_PARTY_NOTICES.md dist\Sonar\ >nul
+:exe_ready
 echo.
 echo Controllo dell'eseguibile...
+set SONAR_MODEL_CODE_BUILD=%SONAR_MODEL_CODE%
+set SONAR_MODEL_CODE=
 "dist\Sonar\Sonar.exe" --selftest > build\selftest.txt 2>&1
+set SONAR_MODEL_CODE=%SONAR_MODEL_CODE_BUILD%
 type build\selftest.txt
 findstr /c:"ESITO: OK" build\selftest.txt >nul || goto fail
 
 rem --- programma di installazione (Inno Setup) --------------------------------
-set ISCC=
-if exist "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe" set ISCC=%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe
-if not defined ISCC if exist "%ProgramFiles%\Inno Setup 6\ISCC.exe" set ISCC=%ProgramFiles%\Inno Setup 6\ISCC.exe
-if not defined ISCC if exist "%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" set ISCC=%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe
-if not defined ISCC (
-  echo Inno Setup non trovato: provo a installarlo con winget...
-  winget install --id JRSoftware.InnoSetup -e --silent --accept-source-agreements --accept-package-agreements
-  if exist "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe" set ISCC=%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe
-  if exist "%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" set ISCC=%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe
-)
-if not defined ISCC (
-  echo.
-  echo Inno Setup non disponibile: l'app e' pronta in dist\Sonar\Sonar.exe ^(versione portatile^).
-  echo Per il programma di installazione: installare Inno Setup 6 da https://jrsoftware.org/isdl.php e rilanciare.
-  goto done
-)
+rem (percorsi in variabili: le parentesi di "Program Files (x86)" romperebbero i blocchi if)
+set "PF86=%ProgramFiles(x86)%"
+set "PF64=%ProgramFiles%"
+set "ISCC="
+call :find_iscc
+if defined ISCC goto have_iscc
+echo Inno Setup non trovato: provo a installarlo con winget...
+winget install --id JRSoftware.InnoSetup -e --scope user --silent --accept-source-agreements --accept-package-agreements
+call :find_iscc
+if defined ISCC goto have_iscc
+winget install --id JRSoftware.InnoSetup -e --silent --accept-source-agreements --accept-package-agreements
+call :find_iscc
+if defined ISCC goto have_iscc
+echo.
+echo Inno Setup non disponibile: l'app e' pronta in dist\Sonar\Sonar.exe (versione portatile).
+echo Per il programma di installazione: installare Inno Setup 6 da https://jrsoftware.org/isdl.php e rilanciare.
+goto done
+:have_iscc
+echo Inno Setup: %ISCC%
 "%ISCC%" /Q /DAppVersion=%VERSION% build\installer.iss
 if errorlevel 1 goto fail
 echo.
@@ -96,3 +104,9 @@ echo.
 echo Build non riuscita: inviare i messaggi qui sopra.
 pause
 exit /b 1
+
+:find_iscc
+if exist "%PF86%\Inno Setup 6\ISCC.exe" set "ISCC=%PF86%\Inno Setup 6\ISCC.exe"
+if exist "%PF64%\Inno Setup 6\ISCC.exe" set "ISCC=%PF64%\Inno Setup 6\ISCC.exe"
+if exist "%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" set "ISCC=%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe"
+exit /b 0
