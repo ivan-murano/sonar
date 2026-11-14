@@ -122,8 +122,9 @@ def _from_feature(feature: dict, candidate: Candidate, year: int, source: str) -
     props = {k.upper(): v for k, v in (feature.get('properties') or {}).items()}
     geometry = shape(feature['geometry'])
     population = next((props[k] for k in sorted(props, reverse=True) if k.startswith('POP_') and not k.startswith('POP_DENS') and props[k]), None)
-    return City(name=candidate.name, country_code=str(props.get('CNTR_CODE') or candidate.country_code), lat=candidate.lat, lon=candidate.lon,
-                lau_id=str(props.get('LAU_ID') or props.get('LAU_CODE') or ''), gisco_id=str(props.get('GISCO_ID') or props.get('ID') or ''),
+    return City(name=candidate.name, country_code=str(props.get('CNTR_CODE') or str(props.get('GISCO_ID') or '').partition('_')[0] or candidate.country_code), lat=candidate.lat, lon=candidate.lon,
+                lau_id=str(props.get('LAU_ID') or props.get('LAU_CODE') or str(props.get('GISCO_ID') or '').partition('_')[2]),
+                gisco_id=str(props.get('GISCO_ID') or props.get('ID') or feature.get('id') or ''),
                 lau_name=str(props.get('LAU_NAME') or candidate.name), lau_year=year, area_km2=_area_km2(geometry),
                 geometry=mapping(geometry), population=int(population) if population else None, source=source)
 

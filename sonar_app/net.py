@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import time
 from pathlib import Path
 
@@ -14,12 +15,38 @@ class Cancelled(Exception):
     """Lavoro interrotto dall'utente."""
 
 
+def ca_bundle():
+    """File dei certificati HTTPS esistente: variabili d'ambiente valide, certifi, copia inclusa nell'eseguibile.
+
+    Una variabile REQUESTS_CA_BUNDLE/CURL_CA_BUNDLE che punta a un file inesistente farebbe fallire ogni
+    richiesta con FileNotFoundError: viene ignorata."""
+    for name in ('REQUESTS_CA_BUNDLE', 'CURL_CA_BUNDLE'):
+        value = os.environ.get(name)
+        if value and not os.path.exists(value):
+            os.environ.pop(name, None)
+        elif value:
+            return value
+    candidates = []
+    try:
+        import certifi
+        candidates.append(certifi.where())
+    except Exception:
+        pass
+    from .config import bundle_dir
+    candidates.append(str(bundle_dir() / 'certifi' / 'cacert.pem'))
+    for path in candidates:
+        if path and os.path.exists(path):
+            return path
+    return True
+
+
 def session():
     import requests
     from requests.adapters import HTTPAdapter
     from urllib3.util.retry import Retry
     s = requests.Session()
     s.headers['User-Agent'] = USER_AGENT
+    s.verify = ca_bundle()
     retry = Retry(total=4, backoff_factor=1.5, status_forcelist=(429, 500, 502, 503, 504), allowed_methods=('GET', 'HEAD'))
     s.mount('https://', HTTPAdapter(max_retries=retry))
     s.mount('http://', HTTPAdapter(max_retries=retry))
@@ -28,14 +55,14 @@ def session():
 
 def get_json(url: str, params=None, timeout=TIMEOUT):
     with session() as s:
-        response = s.get(url, params=params, timeout=timeout)
+        response = s.get(url, params=params, timeout=timeout, verify=s.verify)
         response.raise_for_status()
         return response.json()
 
 
 def get_text(url: str, timeout=TIMEOUT) -> str:
     with session() as s:
-        response = s.get(url, timeout=timeout)
+        response = s.get(url, timeout=timeout, verify=s.verify)
         response.raise_for_status()
         return response.text
 
@@ -64,7 +91,7 @@ def download(url: str, dest: Path, progress=None, cancelled=None, expected_md5: 
     dest.parent.mkdir(parents=True, exist_ok=True)
     part = dest.with_name(dest.name + '.part')
     with session() as s:
-        head = s.head(url, allow_redirects=True, timeout=TIMEOUT)
+        head = s.head(url, allow_redirects=True, timeout=TIMEOUT, verify=s.verify)
         total = int(head.headers.get('Content-Length') or 0) or None
         if max_bytes and total and total > max_bytes:
             raise ValueError(f'File troppo grande ({total:,} byte): {url}')
@@ -72,7 +99,7 @@ def download(url: str, dest: Path, progress=None, cancelled=None, expected_md5: 
         if total and start > total:
             part.unlink(); start = 0
         headers = {'Range': f'bytes={start}-'} if start else {}
-        with s.get(url, stream=True, headers=headers, timeout=TIMEOUT, allow_redirects=True) as response:
+        with s.get(url, stream=True, headers=headers, timeout=TIMEOUT, allow_redirects=True, verify=s.verify) as response:
             if start and response.status_code != 206:
                 start = 0  # il server ignora Range: si riparte da zero
             response.raise_for_status()
