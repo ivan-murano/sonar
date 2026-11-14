@@ -36,7 +36,7 @@ Sonar_<Città>_<AAAA-MM-GG_HHMM>/
 
 ## Modello
 
-Il modello acustico è un modulo separato in `models/`, collegato al software dal contratto [`sonar-model/1`](docs/MODEL_CONTRACT.md): si può aggiornare o sostituire senza modificare Sonar. Il modello incluso è `models/m3_barcellona` (spiegazione: [docs/MODEL.md](docs/MODEL.md)).
+Il modello acustico è un modulo separato in `models/`, collegato al software dal contratto [`sonar-model/1`](docs/MODEL_CONTRACT.md): si può aggiornare o sostituire senza modificare Sonar. Il modello incluso è `models/m3_barcellona` (spiegazione: [docs/MODEL.md](docs/MODEL.md)). Passaggi di consegne: [software](docs/HANDOFF.md), [modello](docs/HANDOFF_MODEL.md).
 
 ## Sviluppo
 

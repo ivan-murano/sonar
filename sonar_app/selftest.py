@@ -48,10 +48,20 @@ def run() -> int:
         import PySide6
         return f'PySide6 {PySide6.__version__}'
 
+    def network():
+        from . import net
+        bundle = net.ca_bundle()
+        data = net.get_json('https://gisco-services.ec.europa.eu/id/lau',
+                            params={'x': 14.25, 'y': 40.85, 'proj': 4326, 'year': 2024, 'format': 'geojson', 'geometry': 'no'}, timeout=(15, 30))
+        name = (data.get('features') or [{}])[0].get('properties', {}).get('lau_name')
+        return f'certificati {bundle}; GISCO risponde ({name})'
+
     check('GDAL e formati', gdal)
     check('librerie geografiche', libraries)
     check('modello', model)
     check('Qt', qt)
+    if '--offline' not in sys.argv:
+        check('rete (HTTPS)', network)
     lines.append('ESITO: OK' if ok else 'ESITO: ERRORI')
     text = '\n'.join(lines)
     print(text, flush=True)

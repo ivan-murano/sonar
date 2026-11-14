@@ -276,8 +276,13 @@ class MainWindow(Movable, QWidget):
             self.choose_folder_and_run()
 
     def on_lookup_error(self, exc):
+        import traceback
         self.set_lookup(False)
+        self.log_tail = traceback.format_exception(exc)
+        self.save_error_log()
+        self.action.setProperty('mode', 'log'); self.action.setText(t('open_log', self.language)); self.action.show()
         self.show_status(t('network_error', self.language), f'{type(exc).__name__}: {exc}', error=True)
+        self.action.show()
 
     # ---------------------------------------------------------------- lavoro
     def choose_folder_and_run(self):
