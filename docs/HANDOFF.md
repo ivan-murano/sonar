@@ -122,3 +122,23 @@ L'utente non è uno sviluppatore e non vuole toccare file: la prossima chat eseg
 4. Provare gli stili in QGIS e ArcGIS Pro; eventualmente regola "nessuna stima" grigia anche in QGIS (ora i NULL non sono disegnati).
 5. Gestire città fuori copertura GISCO e senza estratto Geofabrik con messaggi chiari; un'opzione "confine da file".
 6. Unire `sonar-software` in `main` dopo le verifiche.
+
+## 9. Aggiornamento del 14/11/2026 (sessione interrotta per limite di utilizzo)
+
+**Fatto e verificato sul PC dell'utente**
+- `build\BUILD_WINDOWS.cmd` eseguito con Python 3.12.16 standalone (uv, `build\uv`): `selftest.txt` con `OK rete (HTTPS)` ed `ESITO: OK`, `netdiag.txt` tutto OK (TLS 1.3). Il problema TLS del Python Codex è risolto.
+- Dal PC rispondono in meno di 1 s Nominatim, GISCO ID con `geometry=yes` (2024/2023/2021), indice Geofabrik, WorldCover S3, STAC Overture (`.diag\cerca.py`, esito in `.diag\cerca.txt`).
+- Secondo difetto trovato e corretto: la ricerca restava su "Cerco la città…" perché i segnali dei `Task` erano collegati a lambda (slot fuori dal thread GUI, Task non trattenuto). Ora `MainWindow.start_task` usa metodi legati con `QueuedConnection` e trattiene i Task (`sonar_app/ui/app.py`, test `tests/test_ui_lookup.py`, 16 test superati). Ramo `fix-lookup-thread`, **da unire in `main`**.
+- Installer ricostruito con la correzione: `build\output\Sonar-Setup-1.0.0.exe`, 140.406.397 byte, SHA-256 `32c9246ecb0bdd59f590d549a8820bcb002df0f50abcb41331a604238b995339`. Installato in modo silenzioso (`/VERYSILENT`, esito 0). Nell'app installata "Melfi" + Invio mostra "Melfi · IT · 205 km²".
+
+**Dove ci si è fermati**: premuto *Avvia*, finestra di scelta cartella aperta (navigazione fino a `D:\noise_pollution`). La consegna end-to-end con i download reali **non è ancora stata provata**; Release e merge non fatti.
+
+**Per riprendere**
+1. In Sonar: Melfi → Avvia → cartella `D:\noise_pollution\outputs\sonar\.diag\prova` (già creata); controllare GPKG con stile, File Geodatabase, PNG, dati di input, LEGGIMI, LICENZA, AUTORI. Se servono correzioni: ricostruire e aggiornare lo SHA-256.
+2. Release `v1.0.0` dal browser integrato (note in `build\RELEASE_NOTES.md` + SHA-256), poi unire `fix-lookup-thread` in `main`.
+
+**Note pratiche nuove**
+- Uso del computer: la finestra dell'installer Inno Setup (`sonar-setup-1.0.0.tmp`) è oscurata e non comandabile; usare uno script `.cmd` con `/VERYSILENT /SUPPRESSMSGBOXES /LOG=` avviato con doppio clic. Nella finestra di scelta cartella non si può digitare il percorso: navigare con i doppi clic.
+- `build\output\AAA_DIAG.cmd` ricostruisce (`BUILD_WINDOWS.cmd < nul`, log in `build_log.txt`) e reinstalla in un colpo; esito in `install_esito2.txt`. `INSTALLA_PROVA.cmd` installa soltanto. Sono file di servizio, non del repository.
+- La VM `device_bash` non ha rete; `%LOCALAPPDATA%\Sonar` non è accessibile (richiesta di accesso negata): registri e cache non leggibili da lì.
+- Le schermate consumano molto: preferire `zoom` su regioni piccole e controlli via file.
