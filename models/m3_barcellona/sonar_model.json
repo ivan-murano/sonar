@@ -1,0 +1,78 @@
+{
+  "contract": "sonar-model/1",
+  "id": "m3_barcellona",
+  "version": "1.0.0",
+  "default": true,
+  "name": {"it": "Rumore urbano M3 (Barcellona, dati aperti)", "en": "Urban noise M3 (Barcelona, open data)"},
+  "authors": ["Ivan Murano", "Laura Ripoli"],
+  "documentation_url": "https://github.com/ivan-murano/sonar/blob/main/docs/MODEL.md",
+  "entrypoint": "adapter:run",
+  "code": {
+    "env": "SONAR_MODEL_CODE",
+    "bundled_dir": "code",
+    "bundle": ["src/**/*.py", "scripts/**/*.py", "configs/**/*", "models/20261013T133952Z_activity_hours/*_M3.joblib",
+               "models/20261013T133952Z_activity_hours/programs.json", "data/processed/20261013T084848Z_reference_dataset/site_features.parquet"]
+  },
+  "inputs": [
+    {"id": "osm", "provider": "osm_pbf", "buffer_m": 1500, "clip_margin_m": 1000},
+    {"id": "places", "provider": "overture_places", "type": "place", "buffer_m": 1500},
+    {"id": "landcover", "provider": "esa_worldcover", "buffer_m": 1500}
+  ],
+  "outputs": [
+    {
+      "id": "h3",
+      "title": {"it": "Celle H3 (~100 m)", "en": "H3 cells (~100 m)"},
+      "file_stem": {"it": "rumore_celle_H3", "en": "noise_H3_cells"},
+      "layers": [
+        {"name": "feriale", "export_name": {"it": "feriale", "en": "weekday"}, "title": {"it": "Giorno feriale scolastico", "en": "School weekday"}},
+        {"name": "festivo", "export_name": {"it": "festivo", "en": "holiday"}, "title": {"it": "Domenica / festivo", "en": "Sunday / holiday"}}
+      ],
+      "style": "laeq",
+      "style_field": "laeq_09_13",
+      "map_fields": [
+        {"field": "laeq_00_06", "title": {"it": "00–06", "en": "00–06"}},
+        {"field": "laeq_06_09", "title": {"it": "06–09", "en": "06–09"}},
+        {"field": "laeq_09_13", "title": {"it": "09–13", "en": "09–13"}},
+        {"field": "laeq_13_17", "title": {"it": "13–17", "en": "13–17"}},
+        {"field": "laeq_17_21", "title": {"it": "17–21", "en": "17–21"}},
+        {"field": "laeq_21_24", "title": {"it": "21–24", "en": "21–24"}}
+      ]
+    },
+    {
+      "id": "strade",
+      "title": {"it": "Segmenti stradali", "en": "Road segments"},
+      "file_stem": {"it": "rumore_strade", "en": "noise_roads"},
+      "layers": [
+        {"name": "feriale", "export_name": {"it": "feriale", "en": "weekday"}, "title": {"it": "Giorno feriale scolastico", "en": "School weekday"}},
+        {"name": "festivo", "export_name": {"it": "festivo", "en": "holiday"}, "title": {"it": "Domenica / festivo", "en": "Sunday / holiday"}}
+      ],
+      "style": "laeq",
+      "style_field": "laeq_09_13",
+      "map_fields": [
+        {"field": "laeq_00_06", "title": {"it": "00–06", "en": "00–06"}},
+        {"field": "laeq_06_09", "title": {"it": "06–09", "en": "06–09"}},
+        {"field": "laeq_09_13", "title": {"it": "09–13", "en": "09–13"}},
+        {"field": "laeq_13_17", "title": {"it": "13–17", "en": "13–17"}},
+        {"field": "laeq_17_21", "title": {"it": "17–21", "en": "17–21"}},
+        {"field": "laeq_21_24", "title": {"it": "21–24", "en": "21–24"}}
+      ]
+    }
+  ],
+  "styles": {
+    "laeq": {
+      "title": {"it": "LAeq stimato", "en": "Estimated LAeq"},
+      "unit": "dB(A)",
+      "breaks": [40, 45, 50, 55, 60, 65, 70, 75, 80],
+      "colors": ["#ffffcc", "#ffeda0", "#fed976", "#feb24c", "#fd8d3c", "#fc4e2a", "#e31a1c", "#bd0026", "#800026", "#4a0030"],
+      "no_data_color": "#d5d9dc"
+    }
+  },
+  "notes": {
+    "it": "Stime sperimentali: modelli M3 addestrati a Barcellona e trasferiti senza misure locali di verifica. Ogni cella o segmento ha una stima in un punto esterno rappresentativo, sulla scala dei sensori di riferimento; non sono indicatori normativi Lden/Lnight.",
+    "en": "Experimental estimates: M3 models trained in Barcelona and transferred without local verification measurements. Each cell or segment has an estimate at a representative outdoor point, on the reference-sensor scale; these are not regulatory Lden/Lnight indicators."
+  },
+  "output_license": {
+    "it": "I risultati derivano da OpenStreetMap: sono opere derivate soggette a ODbL 1.0 (© OpenStreetMap contributors), con Overture Maps (CDLA Permissive 2.0) ed ESA WorldCover (CC BY 4.0).",
+    "en": "Results derive from OpenStreetMap: they are derivative works subject to ODbL 1.0 (© OpenStreetMap contributors), with Overture Maps (CDLA Permissive 2.0) and ESA WorldCover (CC BY 4.0)."
+  }
+}
