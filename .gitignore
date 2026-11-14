@@ -11,3 +11,4 @@ models/*/code/
 *.part
 build/netdiag.txt
 netdiag.txt
+build/uv/

@@ -23,20 +23,29 @@ for %%i in ("%SONAR_MODEL_CODE%") do set SONAR_MODEL_CODE=%%~fi
 echo Modello: %SONAR_MODEL_CODE%
 
 rem --- ambiente Python di build ------------------------------------------------
+rem Serve un Python 3.12 standard (python.org o python-build-standalone): il Python del runtime Codex
+rem impacchettato non riesce a creare connessioni HTTPS (OpenSSL), quindi non viene usato.
 set PY=%ROOT%\.venv-build\Scripts\python.exe
+if exist "%ROOT%\.venv-build\pyvenv.cfg" findstr /i "codex-runtimes" "%ROOT%\.venv-build\pyvenv.cfg" >nul && rmdir /s /q "%ROOT%\.venv-build"
 if exist "%PY%" goto have_venv
-set BASE=
-if defined SONAR_PYTHON set BASE=%SONAR_PYTHON%
-if not defined BASE if exist "%SONAR_MODEL_CODE%\.venv\Scripts\python.exe" (
-  for /f "tokens=2 delims==" %%h in ('findstr /b "home" "%SONAR_MODEL_CODE%\.venv\pyvenv.cfg"') do set BASEHOME=%%h
-)
-if not defined BASE if defined BASEHOME (
-  for /f "tokens=* delims= " %%h in ("%BASEHOME%") do if exist "%%h\python.exe" set BASE=%%h\python.exe
-)
-if not defined BASE (
-  where py >nul 2>nul && set BASE=py -3.12
-)
-if not defined BASE set BASE=python
+set "BASE="
+if defined SONAR_PYTHON set "BASE=%SONAR_PYTHON%"
+if defined BASE goto make_venv
+where py >nul 2>nul
+if errorlevel 1 goto use_uv
+py -3.12 -c "import sys; assert 'codex' not in sys.executable.lower()" >nul 2>nul
+if errorlevel 1 goto use_uv
+set "BASE=py -3.12"
+goto make_venv
+:use_uv
+set "UVDIR=%ROOT%\build\uv"
+if not exist "%UVDIR%\uv.exe" powershell -NoProfile -ExecutionPolicy Bypass -Command "$env:UV_INSTALL_DIR='%UVDIR%'; $env:UV_NO_MODIFY_PATH='1'; irm https://astral.sh/uv/install.ps1 | iex"
+if not exist "%UVDIR%\uv.exe" goto fail
+echo Creo l'ambiente di build con Python 3.12 standalone (uv)
+"%UVDIR%\uv.exe" venv --python 3.12 --seed "%ROOT%\.venv-build"
+if errorlevel 1 goto fail
+goto have_venv
+:make_venv
 echo Creo l'ambiente di build con: %BASE%
 %BASE% -m venv "%ROOT%\.venv-build"
 if errorlevel 1 goto fail
