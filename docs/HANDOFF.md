@@ -113,6 +113,9 @@ In inglese: `Results/…/Maps`, `Input data/Boundary`, `README.txt`, `LICENSE.tx
 
 ## 8. Prossimi passi suggeriti
 
+L'utente non è uno sviluppatore e non vuole toccare file: la prossima chat esegue tutto (build, prova dell'installer, release) chiedendo solo approvazioni. Prompt di avvio: [NEXT_CHAT_PROMPT.md](NEXT_CHAT_PROMPT.md).
+
+
 1. Eseguire `BUILD_WINDOWS.cmd` con la correzione Python standard; verificare `selftest.txt`/`netdiag.txt`; reinstallare e cercare una città (es. Melfi) fino alla consegna.
 2. Pubblicare la release v1.0.0 (manuale) o preparare la GitHub Action.
 3. Logo e icona dell'utente: `sonar_app/assets/logo.svg` (letto in automatico da `Logo`) e `sonar_app/assets/sonar.ico` (usato da PyInstaller e dalla finestra); aggiungere `SetupIconFile` in `installer.iss`.
