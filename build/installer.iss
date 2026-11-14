@@ -14,8 +14,12 @@ AppPublisherURL=https://github.com/ivan-murano/sonar
 DefaultDirName={autopf}\Sonar
 DefaultGroupName=Sonar
 DisableProgramGroupPage=yes
+; installazione per l'utente corrente, senza diritti di amministratore e senza domande
 PrivilegesRequired=lowest
-PrivilegesRequiredOverridesAllowed=dialog
+ShowLanguageDialog=auto
+DisableDirPage=yes
+DisableReadyPage=yes
+CloseApplications=yes
 LicenseFile=..\LICENSE.txt
 OutputDir=output
 OutputBaseFilename=Sonar-Setup-{#AppVersion}
