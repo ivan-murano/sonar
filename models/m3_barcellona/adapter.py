@@ -29,6 +29,22 @@ def code_root(model_dir: Path) -> Path:
     raise FileNotFoundError('Codice del modello Pharos Noise non trovato: impostare SONAR_MODEL_CODE oppure includere la cartella code/')
 
 
+def _accelerate_static_features():
+    """Feature statiche con il calcolo accelerato di Sonar (stessi risultati, verificati dal modello a ogni esecuzione).
+
+    Si sostituisce solo la funzione chiamata da `sonar.prepare.run_prepare`; il codice del modello non cambia.
+    SONAR_FAST_FEATURES=0 ripristina il calcolo originale."""
+    if os.environ.get('SONAR_FAST_FEATURES', '1') == '0':
+        return
+    import sonar.prepare as model_prepare
+    from sonar_app.fastfeatures import compute_static_features
+
+    def accelerated(receivers, roads, buildings, osm_static, places_static, cfg, cache_dir, workers=None, chunk=1000, log=print):
+        return compute_static_features(receivers, roads, buildings, osm_static, places_static, cfg, cache_dir, None, chunk, log)
+
+    model_prepare.compute_static_features = accelerated
+
+
 def run(ctx):
     code = code_root(ctx.model_dir)
     os.environ['SONAR_CODE'] = str(code)
@@ -41,6 +57,7 @@ def run(ctx):
     from sonar.predict import run_predict
     from sonar.prepare import run_prepare
     from sonar.runs import city_slug
+    _accelerate_static_features()
 
     city = ctx.city
     slug = city_slug(city.get('lau_name') or city['name'])

@@ -64,3 +64,21 @@ Vedi `docs/STATUS.md`, `docs/DECISIONS.md` (D054–D058), `docs/handoff/city_too
 - **Livello minimo e soglie sanitarie.** Su Melfi le stime hanno un pavimento per fascia (es. 48,0–48,4 dB 00–06, ~53 dB di giorno) anche in aperta campagna: ne derivano Lden indicativo ≈ 57,8 e Lnight ≈ 50,5 dB ovunque, cioè il 100% del territorio sopra le soglie OMS (53/45) e UE (55/50). Per questo Sonar usa la scala `"city"` e dichiara che i valori non vanno confrontati con le soglie OMS. Se il modello potrà fornire livelli confrontabili (scala in facciata, pavimento realistico), basta impostare `"scale": "who"` in `indicators` del manifest.
 - **Indicatori.** Sonar calcola Lden/Lnight indicativi dalle sei fasce (vedi `MODEL_CONTRACT.md`, `indicators`). Le fasce non coincidono con i periodi della Direttiva (07–19/19–23/23–07): ogni ora prende il valore della sua fascia. Se il modello producesse direttamente i livelli orari o per periodo, la stima sarebbe più fedele.
 - **Nome visibile.** Il modello si chiama *Pharos Noise* in tutto ciò che vede l'utente. Restano "M3"/"Barcelona" nei testi prodotti dal codice del modello: righe del registro (es. «Programmi di apertura delle attività (M3)») e `*_metadata.json` (`model_id`, `target`, `model_ensemble`, `validation`). Da allineare nel modello quando opportuno.
+
+## 9. Feature statiche accelerate dal software (14/11/2026)
+
+Nelle città grandi la fase «4/6 Feature statiche 100/250/500 m» era la più lunga (Parigi: ore). Causa: in
+`src/prediction_features.py` ogni coppia ricevitore-geometria passa per `covered_by` e, se a cavallo del bordo,
+per un'intersezione GEOS con il buffer a 64 lati (~15 µs di costo fisso per chiamata), su 2-3 thread.
+
+Sonar ora usa `sonar_app/fastfeatures.py` (stesse definizioni, nessun file del modello modificato): l'adattatore
+sostituisce a runtime `sonar.prepare.compute_static_features`. La funzione mantiene interfaccia, cache a blocchi e
+verifica: a ogni esecuzione confronta 100 ricevitori con `reference_features_function()` del modello
+(`np.allclose`, rtol 1e-10, atol 1e-7) e si ferma se differiscono. Calcolo: una sola interrogazione dell'indice per
+strato, misura intera per le geometrie con bbox nel cerchio inscritto del 64-gono, ritaglio vettoriale (numpy) con i
+lati del 64-gono dello spicchio che contiene la geometria, processi paralleli (circa i core fisici, entro la memoria).
+
+Misure (Napoli, dati di `20261111T141457Z_sonar_prepare_napoli`): differenza massima dal riferimento 9e-9; un core:
+6,8 → 1,2 ms per ricevitore (centro storico 11,5 → 1,8). `SONAR_FAST_FEATURES=0` ripristina il calcolo originale.
+**Proposta**: adottare il metodo in `src/prediction_features.py` / `prepare.py`; se le feature cambiano, la verifica a
+ogni esecuzione segnala subito la differenza e Sonar va aggiornato.
