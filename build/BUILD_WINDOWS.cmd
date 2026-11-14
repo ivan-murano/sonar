@@ -47,7 +47,7 @@ if errorlevel 1 goto fail
 rem --- verifiche --------------------------------------------------------------
 "%PY%" -m sonar_app.check_model
 if errorlevel 1 goto fail
-"%PY%" -m pytest -q tests
+"%PY%" -m pytest -q -p no:cacheprovider tests
 if errorlevel 1 goto fail
 
 rem --- eseguibile -------------------------------------------------------------
