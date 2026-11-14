@@ -1,0 +1,46 @@
+SONAR — LICENZA D'USO / END-USER LICENSE
+Copyright (c) 2026 Ivan Murano, Laura Ripoli. Tutti i diritti riservati / All rights reserved.
+
+ITALIANO
+
+1. Concessione. Gli autori concedono a chi ha ottenuto Sonar direttamente da loro, o da un canale da
+   loro autorizzato, il diritto gratuito, non esclusivo e non trasferibile di installare e usare Sonar
+   su qualsiasi numero di computer propri o della propria organizzazione.
+2. Divieti. Senza autorizzazione scritta degli autori non è consentito: ridistribuire, pubblicare,
+   noleggiare, vendere o concedere in sublicenza Sonar o parti di esso, anche modificate; mettere Sonar a
+   disposizione di terzi come servizio; rimuovere o alterare le note di copyright e di licenza.
+3. Componenti di terze parti. Sonar include componenti distribuiti con licenze proprie, elencati in
+   THIRD_PARTY_NOTICES.md e nella cartella "licenses" dell'installazione; per essi valgono quelle
+   licenze e la presente licenza non le limita. In particolare le librerie Qt/PySide6 (LGPL v3) sono
+   installate come file separati: è consentito sostituirle con versioni modificate e analizzare Sonar
+   nella misura necessaria a verificare il funzionamento di tali modifiche.
+4. Risultati. Le mappe e i dati prodotti appartengono a chi usa Sonar, nel rispetto delle licenze dei
+   dati di origine: OpenStreetMap (ODbL 1.0, i risultati sono opere derivate), Overture Maps
+   (CDLA Permissive 2.0), ESA WorldCover (CC BY 4.0) e confini Eurostat GISCO/EuroGeographics, usabili
+   solo per scopi non commerciali. L'uso commerciale dei confini richiede una licenza EuroGeographics.
+5. Nessuna garanzia. Sonar è fornito "così com'è". Le stime del modello sono sperimentali e non
+   sostituiscono misure o mappe acustiche previste dalla normativa. Nei limiti di legge gli autori non
+   rispondono di danni derivanti dall'uso di Sonar o dei risultati.
+6. Legge applicabile: legge italiana.
+
+ENGLISH
+
+1. Grant. The authors grant whoever obtained Sonar directly from them, or through a channel they
+   authorised, a free, non-exclusive, non-transferable right to install and use Sonar on any number of
+   computers owned by them or by their organisation.
+2. Restrictions. Without the authors' written permission you may not redistribute, publish, rent,
+   sell or sublicense Sonar or parts of it, modified or not; offer Sonar to third parties as a service;
+   remove or alter copyright and license notices.
+3. Third-party components. Sonar includes components distributed under their own licenses, listed in
+   THIRD_PARTY_NOTICES.md and in the "licenses" folder of the installation; those licenses apply to them
+   and this license does not restrict them. In particular the Qt/PySide6 libraries (LGPL v3) are
+   installed as separate files: you may replace them with modified versions and reverse-engineer Sonar
+   to the extent needed to debug such modifications.
+4. Results. Maps and data produced belong to the user, subject to the licenses of the source data:
+   OpenStreetMap (ODbL 1.0, results are derivative works), Overture Maps (CDLA Permissive 2.0),
+   ESA WorldCover (CC BY 4.0) and Eurostat GISCO/EuroGeographics boundaries, usable for non-commercial
+   purposes only. Commercial use of the boundaries requires a EuroGeographics licence.
+5. No warranty. Sonar is provided "as is". Model estimates are experimental and do not replace
+   measurements or statutory noise maps. To the extent permitted by law the authors are not liable for
+   damages arising from the use of Sonar or of its results.
+6. Governing law: Italian law.

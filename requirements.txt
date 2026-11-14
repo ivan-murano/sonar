@@ -1,0 +1,23 @@
+# Dipendenze di Sonar e del modello M3 (versioni verificate). Python 3.12.
+affine==3.0.1
+geopandas==1.2.0
+h3==4.5.0
+holidays==0.106
+joblib==1.6.0
+matplotlib==3.11.2
+numpy==2.5.4
+osmium==4.3.1
+overturemaps==1.0.2
+pandas==3.0.6
+pillow==12.3.0
+pyarrow==26.0.0
+pyogrio==0.13.0
+pyproj==3.8.0
+PyYAML==6.0.3
+rasterio==1.5.2
+requests==2.34.2
+scikit-learn==1.9.1
+scipy==1.18.1
+shapely==2.2.0
+tzdata==2026.5
+PySide6-Essentials==6.12.0
