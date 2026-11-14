@@ -67,6 +67,7 @@ echo Controllo dell'eseguibile...
 set SONAR_MODEL_CODE_BUILD=%SONAR_MODEL_CODE%
 set SONAR_MODEL_CODE=
 "dist\Sonar\Sonar.exe" --selftest > build\selftest.txt 2>&1
+"dist\Sonar\Sonar.exe" --netdiag > build\netdiag.txt 2>&1
 set SONAR_MODEL_CODE=%SONAR_MODEL_CODE_BUILD%
 type build\selftest.txt
 findstr /c:"ESITO: OK" build\selftest.txt >nul || goto fail
