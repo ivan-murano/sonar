@@ -1,0 +1,4 @@
+Sonar
+Software: Ivan Murano, Laura Ripoli
+Modello acustico M3 (models/m3_barcellona) / Acoustic model M3: Ivan Murano, Laura Ripoli
+Repository: https://github.com/ivan-murano/sonar
