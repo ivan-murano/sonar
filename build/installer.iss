@@ -19,9 +19,10 @@ PrivilegesRequiredOverridesAllowed=dialog
 LicenseFile=..\LICENSE.txt
 OutputDir=output
 OutputBaseFilename=Sonar-Setup-{#AppVersion}
-Compression=lzma2/ultra64
+; lzma2/max: ultra64 con archivio solido da ~550 MB esaurisce la memoria del compilatore (processo a 32 bit)
+Compression=lzma2/max
 SolidCompression=yes
-LZMANumBlockThreads=4
+LZMAUseSeparateProcess=yes
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
