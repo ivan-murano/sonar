@@ -30,12 +30,12 @@
       "style": "laeq",
       "style_field": "laeq_09_13",
       "map_fields": [
-        {"field": "laeq_00_06", "title": {"it": "00–06", "en": "00–06"}},
-        {"field": "laeq_06_09", "title": {"it": "06–09", "en": "06–09"}},
-        {"field": "laeq_09_13", "title": {"it": "09–13", "en": "09–13"}},
-        {"field": "laeq_13_17", "title": {"it": "13–17", "en": "13–17"}},
-        {"field": "laeq_17_21", "title": {"it": "17–21", "en": "17–21"}},
-        {"field": "laeq_21_24", "title": {"it": "21–24", "en": "21–24"}}
+        {"field": "laeq_00_06", "title": {"it": "00–06", "en": "00–06"}, "hours": [0, 6]},
+        {"field": "laeq_06_09", "title": {"it": "06–09", "en": "06–09"}, "hours": [6, 9]},
+        {"field": "laeq_09_13", "title": {"it": "09–13", "en": "09–13"}, "hours": [9, 13]},
+        {"field": "laeq_13_17", "title": {"it": "13–17", "en": "13–17"}, "hours": [13, 17]},
+        {"field": "laeq_17_21", "title": {"it": "17–21", "en": "17–21"}, "hours": [17, 21]},
+        {"field": "laeq_21_24", "title": {"it": "21–24", "en": "21–24"}, "hours": [21, 24]}
       ]
     },
     {
@@ -49,15 +49,16 @@
       "style": "laeq",
       "style_field": "laeq_09_13",
       "map_fields": [
-        {"field": "laeq_00_06", "title": {"it": "00–06", "en": "00–06"}},
-        {"field": "laeq_06_09", "title": {"it": "06–09", "en": "06–09"}},
-        {"field": "laeq_09_13", "title": {"it": "09–13", "en": "09–13"}},
-        {"field": "laeq_13_17", "title": {"it": "13–17", "en": "13–17"}},
-        {"field": "laeq_17_21", "title": {"it": "17–21", "en": "17–21"}},
-        {"field": "laeq_21_24", "title": {"it": "21–24", "en": "21–24"}}
+        {"field": "laeq_00_06", "title": {"it": "00–06", "en": "00–06"}, "hours": [0, 6]},
+        {"field": "laeq_06_09", "title": {"it": "06–09", "en": "06–09"}, "hours": [6, 9]},
+        {"field": "laeq_09_13", "title": {"it": "09–13", "en": "09–13"}, "hours": [9, 13]},
+        {"field": "laeq_13_17", "title": {"it": "13–17", "en": "13–17"}, "hours": [13, 17]},
+        {"field": "laeq_17_21", "title": {"it": "17–21", "en": "17–21"}, "hours": [17, 21]},
+        {"field": "laeq_21_24", "title": {"it": "21–24", "en": "21–24"}, "hours": [21, 24]}
       ]
     }
   ],
+  "indicators": {"items": ["lden", "lnight"], "scale": "city", "clip": [5, 98], "max_classes": 8},
   "styles": {
     "laeq": {
       "title": {"it": "LAeq stimato", "en": "Estimated LAeq"},
@@ -68,8 +69,8 @@
     }
   },
   "notes": {
-    "it": "Stime sperimentali: modelli M3 addestrati a Barcellona e trasferiti senza misure locali di verifica. Ogni cella o segmento ha una stima in un punto esterno rappresentativo, sulla scala dei sensori di riferimento; non sono indicatori normativi Lden/Lnight.",
-    "en": "Experimental estimates: M3 models trained in Barcelona and transferred without local verification measurements. Each cell or segment has an estimate at a representative outdoor point, on the reference-sensor scale; these are not regulatory Lden/Lnight indicators."
+    "it": "Stime sperimentali del modello Pharos Noise, addestrato con misure di riferimento di un'altra città e applicato qui senza misure locali di verifica. Ogni cella o segmento ha una stima in un punto esterno rappresentativo, sulla scala dei sensori di riferimento; non sono indicatori normativi Lden/Lnight.",
+    "en": "Experimental estimates from the Pharos Noise model, trained on reference measurements from another city and applied here without local verification measurements. Each cell or segment has an estimate at a representative outdoor point, on the reference-sensor scale; these are not regulatory Lden/Lnight indicators."
   },
   "output_license": {
     "it": "I risultati derivano da OpenStreetMap: sono opere derivate soggette a ODbL 1.0 (© OpenStreetMap contributors), con Overture Maps (CDLA Permissive 2.0) ed ESA WorldCover (CC BY 4.0).",
