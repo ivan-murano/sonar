@@ -3,7 +3,7 @@
   "id": "m3_barcellona",
   "version": "1.0.0",
   "default": true,
-  "name": {"it": "Rumore urbano M3 (Barcellona, dati aperti)", "en": "Urban noise M3 (Barcelona, open data)"},
+  "name": {"it": "Pharos Noise", "en": "Pharos Noise"},
   "authors": ["Ivan Murano", "Laura Ripoli"],
   "documentation_url": "https://github.com/ivan-murano/sonar/blob/main/docs/MODEL.md",
   "entrypoint": "adapter:run",
