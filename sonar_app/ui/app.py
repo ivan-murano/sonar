@@ -80,18 +80,22 @@ class Task(QRunnable):
     """Funzione eseguita fuori dal thread dell'interfaccia (ricerca e confine)."""
 
     class Signals(QObject):
-        finished = Signal(object)
-        failed = Signal(object)
+        finished = Signal(object, object)  # (task, risultato)
+        failed = Signal(object, object)    # (task, eccezione)
 
     def __init__(self, function, *args):
         super().__init__()
+        # Il riferimento resta a chi avvia il Task (MainWindow._tasks) finché il segnale non è consegnato.
+        self.setAutoDelete(False)
         self.function, self.args, self.signals = function, args, Task.Signals()
 
     def run(self):
         try:
-            self.signals.finished.emit(self.function(*self.args))
-        except Exception as exc:
-            self.signals.failed.emit(exc)
+            result = self.function(*self.args)
+        except BaseException as exc:  # anche SystemExit & co.: l'interfaccia non deve restare in attesa
+            self.signals.failed.emit(self, exc)
+        else:
+            self.signals.finished.emit(self, result)
 
 
 def worker_command(job_file: Path) -> tuple[str, list[str]]:
@@ -118,6 +122,9 @@ class MainWindow(Movable, QWidget):
         self.error = None
         self.busy_lookup = False
         self.pool = QThreadPool.globalInstance()
+        self._tasks: set[Task] = set()
+        self._current_task: Task | None = None
+        self._then_start = False
 
         self.setWindowTitle(APP_NAME)
         self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.FramelessWindowHint)
@@ -242,12 +249,26 @@ class MainWindow(Movable, QWidget):
         self.city, self.city_query = None, query
         self.set_lookup(True)
         self.show_status(t('searching', self.language), query, progress=0.0)
-        task = Task(places.search, query, self.language)
-        task.signals.finished.connect(lambda found: self.on_candidates(found, then_start))
-        task.signals.failed.connect(self.on_lookup_error)
+        self._then_start = then_start
+        self.start_task(self.on_candidates, places.search, query, self.language)
+
+    def start_task(self, on_finished, function, *args):
+        """Avvia function nel pool; on_finished/on_lookup_error girano sempre nel thread GUI (connessione accodata)."""
+        task = Task(function, *args)
+        task.signals.finished.connect(on_finished, Qt.ConnectionType.QueuedConnection)
+        task.signals.failed.connect(self.on_lookup_error, Qt.ConnectionType.QueuedConnection)
+        self._tasks.add(task)
+        self._current_task = task
         self.pool.start(task)
 
-    def on_candidates(self, found, then_start):
+    def take_task(self, task) -> bool:
+        """Rilascia il Task consegnato; False se è il risultato di una ricerca superata."""
+        self._tasks.discard(task)
+        return task is self._current_task
+
+    def on_candidates(self, task, found):
+        if not self.take_task(task):
+            return
         if not found:
             self.set_lookup(False); self.show_status(t('not_found', self.language), self.city_query, error=True); return
         candidate = found[0]
@@ -258,12 +279,12 @@ class MainWindow(Movable, QWidget):
                 self.set_lookup(False); self.status_box.hide(); return
             candidate = found[dialog.value()]
         self.show_status(t('boundary_loading', self.language), candidate.label, progress=0.0)
-        task = Task(places.resolve_boundary, candidate)
-        task.signals.finished.connect(lambda city: self.on_city(city, then_start))
-        task.signals.failed.connect(self.on_lookup_error)
-        self.pool.start(task)
+        self.start_task(self.on_city, places.resolve_boundary, candidate)
 
-    def on_city(self, city, then_start):
+    def on_city(self, task, city):
+        if not self.take_task(task):
+            return
+        self._current_task = None
         self.set_lookup(False)
         if city is None:
             self.show_status(t('not_europe', self.language), self.city_query, error=True); return
@@ -272,11 +293,14 @@ class MainWindow(Movable, QWidget):
         self.city_query = city.name
         config.save_settings({'last_city': city.name})
         self.show_city()
-        if then_start:
+        if self._then_start:
             self.choose_folder_and_run()
 
-    def on_lookup_error(self, exc):
+    def on_lookup_error(self, task, exc):
         import traceback
+        if not self.take_task(task):
+            return
+        self._current_task = None
         self.set_lookup(False)
         self.log_tail = traceback.format_exception(exc)
         self.save_error_log()
