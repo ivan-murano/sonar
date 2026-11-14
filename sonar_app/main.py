@@ -16,6 +16,11 @@ def main(argv=None) -> int:
         ensure_streams()
         from .selftest import run as selftest
         return selftest()
+    if len(argv) > 1 and argv[1] == '--netdiag':
+        from .worker import ensure_streams
+        ensure_streams()
+        from .netdiag import run as netdiag
+        return netdiag()
     if len(argv) > 1 and argv[1] in ('--version', '-V'):
         from . import __version__
         print(f'Sonar {__version__}')
