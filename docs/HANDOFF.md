@@ -131,7 +131,11 @@ L'utente non è uno sviluppatore e non vuole toccare file: la prossima chat eseg
 - Secondo difetto trovato e corretto: la ricerca restava su "Cerco la città…" perché i segnali dei `Task` erano collegati a lambda (slot fuori dal thread GUI, Task non trattenuto). Ora `MainWindow.start_task` usa metodi legati con `QueuedConnection` e trattiene i Task (`sonar_app/ui/app.py`, test `tests/test_ui_lookup.py`, 16 test superati). Ramo `fix-lookup-thread`, **da unire in `main`**.
 - Installer ricostruito con la correzione: `build\output\Sonar-Setup-1.0.0.exe`, 140.406.397 byte, SHA-256 `32c9246ecb0bdd59f590d549a8820bcb002df0f50abcb41331a604238b995339`. Installato in modo silenzioso (`/VERYSILENT`, esito 0). Nell'app installata "Melfi" + Invio mostra "Melfi · IT · 205 km²".
 
-**Dove ci si è fermati**: premuto *Avvia*, finestra di scelta cartella aperta (navigazione fino a `D:\noise_pollution`). La consegna end-to-end con i download reali **non è ancora stata provata**; Release e merge non fatti.
+**Dove ci si è fermati**: l'utente ha completato da sé la prova con Melfi e riferisce che **ha funzionato** (consegna prodotta con i download reali); il contenuto della consegna non è stato ancora controllato file per file da una sessione. Release e merge non fatti.
+
+**Decisioni dell'utente (14/11)**
+- Il modello si chiama **Pharos Noise** in tutto ciò che l'utente vede (farà parte del futuro software Pharos). `m3_barcellona` resta solo come identificativo interno/cartella; `name` del manifest già cambiato, il resto dei testi è da allineare.
+- Problema aperto delle mappe PNG: con la scala fissa 40–80 dB(A) l'urbano risulta tutto rosso e il rurale bianco, senza varianza interna leggibile. Serve una legenda automatica che mostri le differenze dentro l'area costruita. Proposta in `docs/NEXT_CHAT_PROMPT.md`; da decidere con l'utente prima di implementare.
 
 **Per riprendere**
 1. In Sonar: Melfi → Avvia → cartella `D:\noise_pollution\outputs\sonar\.diag\prova` (già creata); controllare GPKG con stile, File Geodatabase, PNG, dati di input, LEGGIMI, LICENZA, AUTORI. Se servono correzioni: ricostruire e aggiornare lo SHA-256.

@@ -4,9 +4,15 @@ Mappe del rumore urbano ad alta risoluzione per le città europee, da dati apert
 
 *High-resolution urban noise maps for European cities from open data. Type a city, Sonar finds its municipal boundary, downloads the data the model needs, computes the maps and delivers an organised folder with results, input data, license and authors.*
 
+## Scaricare e installare
+
+L'installer per Windows 10/11 a 64 bit è nella pagina [Releases](https://github.com/ivan-murano/sonar/releases) (`Sonar-Setup-<versione>.exe`, circa 140 MB). Si apre il file, si accetta la licenza e Sonar è pronto: Python, Qt, GDAL e il modello sono inclusi, non servono diritti di amministratore né altri programmi. Windows può mostrare l'avviso SmartScreen perché l'installer non è firmato digitalmente: *Ulteriori informazioni → Esegui comunque*. Si disinstalla da *Impostazioni → App*.
+
+Servono una connessione a internet e, secondo la dimensione della città, da alcuni minuti a circa 20 minuti di calcolo e 1–2 GB di spazio per i download in cache.
+
 ## Uso
 
-1. Installare con `Sonar-Setup-<versione>.exe` (non servono diritti di amministratore) e avviare Sonar.
+1. Avviare Sonar dal menu Start.
 2. Scrivere la città e premere **Avvia** (o Invio per controllare prima il confine trovato). Se il nome indica più luoghi, Sonar chiede quale.
 3. Scegliere la cartella di destinazione. Sonar mostra fase, avanzamento e cosa sta facendo; al termine compare **Apri cartella**.
 
@@ -32,18 +38,18 @@ Sonar_<Città>_<AAAA-MM-GG_HHMM>/
 
 - Ricerca della città: [Nominatim](https://nominatim.openstreetmap.org) (una richiesta per ricerca, nel rispetto della policy OSMF).
 - Confini: [Eurostat GISCO LAU](https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/local-administrative-units), © EuroGeographics, uso non commerciale.
-- Dati del modello M3: [OpenStreetMap](https://www.openstreetmap.org/copyright) via [Geofabrik](https://download.geofabrik.de), [Overture Maps Places](https://docs.overturemaps.org), [ESA WorldCover 2021](https://esa-worldcover.org).
+- Dati del modello Pharos Noise: [OpenStreetMap](https://www.openstreetmap.org/copyright) via [Geofabrik](https://download.geofabrik.de), [Overture Maps Places](https://docs.overturemaps.org), [ESA WorldCover 2021](https://esa-worldcover.org).
 
 ## Modello
 
-Il modello acustico è un modulo separato in `models/`, collegato al software dal contratto [`sonar-model/1`](docs/MODEL_CONTRACT.md): si può aggiornare o sostituire senza modificare Sonar. Il modello incluso è `models/m3_barcellona` (spiegazione: [docs/MODEL.md](docs/MODEL.md)). Passaggi di consegne: [software](docs/HANDOFF.md), [modello](docs/HANDOFF_MODEL.md).
+Il modello acustico è un modulo separato in `models/`, collegato al software dal contratto [`sonar-model/1`](docs/MODEL_CONTRACT.md): si può aggiornare o sostituire senza modificare Sonar. Il modello incluso è **Pharos Noise** (spiegazione: [docs/MODEL.md](docs/MODEL.md)): stima il livello sonoro esterno LAeq su celle H3 di circa 100 m e sui segmenti stradali, per giorno feriale e festivo e per sei fasce orarie. Sono stime sperimentali da dati aperti, senza misure locali di verifica: indicano dove e quando il rumore è plausibilmente più alto, non sostituiscono una mappatura acustica strategica. Passaggi di consegne: [software](docs/HANDOFF.md), [modello](docs/HANDOFF_MODEL.md).
 
 ## Sviluppo
 
 ```
 py -3.12 -m venv .venv
 .venv\Scripts\python -m pip install -r requirements-build.txt
-set SONAR_MODEL_CODE=D:\noise_pollution          rem progetto del modello M3
+set SONAR_MODEL_CODE=D:\noise_pollution          rem progetto del modello Pharos Noise
 .venv\Scripts\python -m sonar_app                rem interfaccia
 .venv\Scripts\python -m sonar_app --selftest     rem controllo dell'installazione
 .venv\Scripts\python -m sonar_app.check_model    rem controllo dei pacchetti modello
