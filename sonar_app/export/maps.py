@@ -61,3 +61,78 @@ def render(frame, boundary, fields: list[dict], style: dict, title: str, subtitl
     fig.savefig(path, dpi=dpi, facecolor='white')
     plt.close(fig)
     return path
+
+
+STAT = {'it': 'mediana {median} · 10% più esposto ≥ {p90} {unit}', 'en': 'median {median} · most exposed 10% ≥ {p90} {unit}'}
+NOTE = {
+    'it': ('{indicators} calcolati dalle fasce orarie con somma energetica (Direttiva 2002/49/CE: sera +5 dB, notte +10 dB). '
+           'Stime sperimentali, non indicatori normativi; {scale}.'),
+    'en': ('{indicators} computed from the time bands by energy summation (Directive 2002/49/EC: evening +5 dB, night +10 dB). '
+           'Experimental estimates, not regulatory indicators; {scale}.'),
+}
+SCALE_NOTE = {
+    'city': {'it': 'scala in dB adattata alla città, valori da non confrontare con le soglie OMS',
+             'en': 'dB scale adapted to the city, values not to be compared with WHO thresholds'},
+    'who': {'it': 'classi ancorate alle soglie OMS 2018 per il traffico stradale (53 dB Lden, 45 dB Lnight)',
+            'en': 'classes anchored to the WHO 2018 road traffic thresholds (53 dB Lden, 45 dB Lnight)'},
+}
+
+
+def _number(value: float, language: str) -> str:
+    text = f'{value:.1f}'
+    return text.replace('.', ',') if language == 'it' else text
+
+
+def render_indicators(layers: list[tuple[str, object]], boundary, indicator_styles: list[dict], title: str, path: Path,
+                      language: str, model_name: str, dpi=200):
+    """Tavola di sintesi: righe = layer (feriale, festivo), colonne = indicatori (Lden, Lnight), una legenda per colonna."""
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    from matplotlib.cm import ScalarMappable
+
+    from .health import weighted_quantile
+    first = layers[0][1]
+    boundary = boundary.to_crs(first.crs)
+    lines = first.geom_type.isin(['LineString', 'MultiLineString']).all()
+    xmin, ymin, xmax, ymax = boundary.total_bounds
+    rows, cols = len(layers), len(indicator_styles)
+    aspect = (ymax - ymin) / max(xmax - xmin, 1)
+    panel_w = 6.2 if cols > 1 else 9
+    panel_h = min(max(panel_w * aspect, 3), 8)
+    fig, axes = plt.subplots(rows, cols, figsize=(panel_w * cols, rows * panel_h + 2.2), squeeze=False)
+    for c, style in enumerate(indicator_styles):
+        cmap, norm = _colormap(style)
+        unit = style.get('unit', '')
+        for r, (layer_title, frame) in enumerate(layers):
+            ax = axes[r][c]
+            column = style['field']
+            frame.plot(column=column, ax=ax, cmap=cmap, norm=norm, rasterized=True, linewidth=0.4 if lines else 0,
+                       missing_kwds={'color': style.get('no_data_color', '#d5d9dc')})
+            boundary.boundary.plot(ax=ax, color='#222222', linewidth=0.6)
+            ax.set_xlim(xmin, xmax); ax.set_ylim(ymin, ymax); ax.set_aspect('equal'); ax.set_axis_off()
+            weights = frame.geometry.length if lines else frame.geometry.area
+            values = frame[column]
+            if values.notna().any():
+                stat = STAT[language].format(median=_number(weighted_quantile(values, weights, 0.5), language),
+                                             p90=_number(weighted_quantile(values, weights, 0.9), language), unit=unit)
+            else:
+                stat = NO_VALUES[language]
+            ax.set_title(f'{style["label"]} · {layer_title}\n{stat}', fontsize=10.5)
+        left = (c + 0.12) / cols
+        cax = fig.add_axes([left, 0.085, 0.76 / cols, 0.016])
+        fig.colorbar(ScalarMappable(norm=norm, cmap=cmap), cax=cax, orientation='horizontal', extend='both', ticks=style['breaks'])
+        cax.tick_params(labelsize=8)
+        cax.set_title(f'{pick(style.get("title"), language)} {unit} · {pick(style.get("scale_note"), language)}'.strip(), fontsize=9)
+    names = ' e '.join(pick(s['title'], language) for s in indicator_styles) if language == 'it' else \
+        ' and '.join(pick(s['title'], language) for s in indicator_styles)
+    fig.suptitle(title, fontsize=15, fontweight='bold', y=0.995)
+    import textwrap
+    note = NOTE[language].format(indicators=names, scale=SCALE_NOTE[indicator_styles[0].get('scale', 'city')][language])
+    fig.text(0.5, 0.03, textwrap.fill(note, width=95 * cols if cols > 1 else 120), fontsize=8, color='#444444', ha='center', va='bottom')
+    fig.text(0.5, 0.01, FOOTER[language].format(model=model_name), fontsize=7.5, color='#555555', ha='center')
+    fig.subplots_adjust(left=0.01, right=0.99, top=0.92, bottom=0.16, wspace=0.03, hspace=0.18)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path, dpi=dpi, facecolor='white')
+    plt.close(fig)
+    return path

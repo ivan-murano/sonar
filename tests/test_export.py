@@ -44,7 +44,14 @@ def test_delivery_folder(tmp_path, model_output, square_city, language):
         assert {r[0] for r in con.execute('SELECT f_table_name FROM layer_styles WHERE useAsDefault')} == set(layers)
     gdb = next((results / FOLDERS['gdb'][language]).glob('*.gdb'))
     assert len(pyogrio.list_layers(gdb)) == 2 and len(written['lyrx']) == 2
-    assert len(list((results / FOLDERS['maps'][language]).glob('*.png'))) == 2
+    assert [p.name for p in (results / FOLDERS['maps'][language]).glob('*.png')] == written['png']
+    assert len(written['png']) == 1 and written['png'][0].endswith('_Lden_Lnight.png')  # una tavola di sintesi per output
+    with sqlite3.connect(gpkg) as con:
+        assert con.execute('SELECT COUNT(*) FROM layer_styles').fetchone()[0] == 3 * len(layers)  # Lden, Lnight, LAeq
+        default_qml = con.execute('SELECT styleQML FROM layer_styles WHERE useAsDefault LIMIT 1').fetchone()[0]
+    assert 'attr="lden_ind"' in default_qml
+    fields = pyogrio.read_info(gpkg, layer=layers[0])['fields']
+    assert {'lden_ind', 'lnight_ind', 'laeq_09_13'} <= set(fields)
     for key in ('readme', 'license', 'authors'):
         text = (root / FILES[key][language]).read_text(encoding='utf-8-sig')
         assert text.strip()
@@ -57,3 +64,12 @@ def test_safe_names():
     assert export.safe_name('Reggio nell’Emilia: centro?') == 'Reggio_nell’Emilia_centro'
     assert export.gdb_name('h3_Città vecchia') == 'h3_Citta_vecchia'
     assert export.gdb_name('3d') == 'L_3d'
+
+
+def test_delivery_without_indicators_keeps_band_maps(tmp_path, model_output, square_city):
+    model = default_model()
+    model.manifest = {k: v for k, v in model.manifest.items() if k != 'indicators'}
+    root = export.make_root(tmp_path, square_city.name)
+    boundary = square_city.write_boundary(root / 'boundary.gpkg')
+    written = export.export_results(model, {'h3': model_output}, root, square_city, boundary, 'it', lambda f, m: None, print)
+    assert len(written['png']) == 2 and 'indicators' not in written

@@ -29,7 +29,8 @@ Generato il {when} con il modello «{model}» (versione {model_version}).
 COSA C'È IN QUESTA CARTELLA
 - {results}/{gpkg}: GeoPackage con lo stile già applicato (QGIS lo carica in automatico)
 - {results}/{gdb}: File Geodatabase ESRI; in «{styles}» i file .lyrx per ArcGIS Pro
-- {results}/{maps}: tavole PNG delle mappe
+  (se sposti la cartella, in ArcGIS Pro usa «Ripara origine dati» e indica il .gdb)
+- {results}/{maps}: {maps_text}
 - {inputs}/{boundary}: confine amministrativo (Eurostat GISCO LAU {lau_year}, codice {lau_id})
 - {inputs}/…: dati scaricati e usati dal modello, uno per sottocartella
 - {sources_file}: provenienza, versione e licenza di ogni dato
@@ -53,7 +54,8 @@ Generated on {when} with the model “{model}” (version {model_version}).
 WHAT IS IN THIS FOLDER
 - {results}/{gpkg}: GeoPackage with the style already applied (QGIS loads it automatically)
 - {results}/{gdb}: ESRI File Geodatabase; “{styles}” holds .lyrx files for ArcGIS Pro
-- {results}/{maps}: PNG map sheets
+  (if you move the folder, use “Repair Data Source” in ArcGIS Pro and point to the .gdb)
+- {results}/{maps}: {maps_text}
 - {inputs}/{boundary}: administrative boundary (Eurostat GISCO LAU {lau_year}, code {lau_id})
 - {inputs}/…: data downloaded and used by the model, one per subfolder
 - {sources_file}: origin, version and license of every dataset
@@ -110,8 +112,34 @@ Repository: {repo_url}
 }
 
 
+MAPS_TEXT = {
+    'plain': {'it': 'tavole PNG delle mappe', 'en': 'PNG map sheets'},
+    'indicators': {'it': 'una tavola PNG per output con Lden e Lnight indicativi, giorno feriale e festivo; '
+                         'i livelli delle sei fasce orarie sono nei GeoPackage e nel File Geodatabase',
+                   'en': 'one PNG sheet per output with indicative Lden and Lnight, weekday and holiday; '
+                         'the levels of the six time bands are in the GeoPackages and the File Geodatabase'},
+}
+INDICATORS_TEXT = {
+    'it': ('\n\nLden e Lnight indicativi (campi lden_ind, lnight_ind) sono calcolati da Sonar sommando l\'energia sonora delle fasce '
+           'orarie (i decibel sono logaritmici: +3 dB = energia doppia), con le penalità della Direttiva 2002/49/CE (sera +5 dB, '
+           'notte +10 dB). Sono gli indicatori usati dagli studi sugli effetti del rumore sulla salute; le soglie dell\'OMS per il '
+           'traffico stradale sono 53 dB Lden e 45 dB Lnight (2018). Le mappe usano una scala in dB adattata alla città: '
+           'mostrano dove il rumore stimato è più alto, ma i valori non vanno confrontati con le soglie OMS finché il modello '
+           'non è verificato con misure locali.'),
+    'en': ('\n\nIndicative Lden and Lnight (fields lden_ind, lnight_ind) are computed by Sonar by summing the sound energy of the time '
+           'bands (decibels are logarithmic: +3 dB = twice the energy), with the penalties of Directive 2002/49/EC (evening +5 dB, '
+           'night +10 dB). They are the indicators used by studies of noise health effects; the WHO road traffic thresholds are '
+           '53 dB Lden and 45 dB Lnight (2018). The maps use a dB scale adapted to the city: they show where estimated noise is '
+           'highest, but the values must not be compared with WHO thresholds until the model is verified with local measurements.'),
+}
+
+
 def write_documents(root: Path, language: str, model, city, notes_extra: str = '') -> list[Path]:
+    from .health import config as indicators_config
     manifest = model.manifest
+    has_indicators = indicators_config(manifest) is not None
+    if has_indicators:
+        notes_extra = INDICATORS_TEXT[language] + notes_extra
     values = dict(version=__version__, city=city.name, when=datetime.now().strftime('%d/%m/%Y %H:%M' if language == 'it' else '%Y-%m-%d %H:%M'),
                   model=pick(manifest['name'], language), model_version=model.version, results=folder('results', language),
                   gpkg=folder('gpkg', language), gdb=folder('gdb', language), styles=folder('arcgis_styles', language), maps=folder('maps', language),
@@ -120,7 +148,8 @@ def write_documents(root: Path, language: str, model, city, notes_extra: str = '
                   log_file=filename('log', language), notes=(pick(manifest.get('notes'), language) + notes_extra).strip(),
                   doc_url=manifest.get('documentation_url', REPOSITORY_URL), repo_url=REPOSITORY_URL, boundary_attribution=BOUNDARY_ATTRIBUTION,
                   software_authors=', '.join(AUTHORS), model_authors=', '.join(manifest.get('authors', [])),
-                  output_license=pick(manifest.get('output_license'), language))
+                  output_license=pick(manifest.get('output_license'), language),
+                  maps_text=MAPS_TEXT['indicators' if has_indicators else 'plain'][language])
     paths = []
     for key, text in (('readme', README[language].format(**values)),
                       ('license', software_license_text() + DATA_LICENSES[language].format(**values)),

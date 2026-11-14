@@ -66,13 +66,14 @@ Il riquadro è quello del confine LAU allargato di `buffer_m` metri. Un nuovo ti
  "file_stem": {"it": "rumore_celle_H3", "en": "noise_H3_cells"},
  "layers": [{"name": "feriale", "export_name": {"it": "feriale", "en": "weekday"}, "title": {"it": "...", "en": "..."}}],
  "style": "laeq", "style_field": "laeq_09_13",
- "map_fields": [{"field": "laeq_00_06", "title": {"it": "00–06", "en": "00–06"}}],
+ "map_fields": [{"field": "laeq_00_06", "title": {"it": "00–06", "en": "00–06"}, "hours": [0, 6]}],
  "optional": false}
 ```
 
 - `layers[].name`: nome del layer nel GeoPackage del modello; `export_name` il nome nella consegna.
 - `style_field`: campo usato dallo stile predefinito in QGIS e ArcGIS.
-- `map_fields`: un riquadro PNG per campo (fino a 6 per tavola: griglia 2×3); una tavola per layer.
+- `map_fields`: campi dei livelli per fascia oraria; `hours` = ore [inizio, fine) della fascia (serve agli indicatori).
+  Senza `indicators`: un riquadro PNG per campo (fino a 6 per tavola: griglia 2×3), una tavola per layer.
 - Geometrie: poligoni o linee; il CRS è libero (metrico consigliato).
 
 ### `styles`
@@ -84,6 +85,25 @@ Il riquadro è quello del confine LAU allargato di `buffer_m` metri. Un nuovo ti
 ```
 
 `colors` ha un elemento in più di `breaks`: prima classe `< breaks[0]`, ultima `≥ breaks[-1]`.
+
+### `indicators` (facoltativo)
+
+```json
+"indicators": {"items": ["lden", "lnight"], "scale": "city", "clip": [5, 98], "max_classes": 8}
+```
+
+Se presente, e se `map_fields[].hours` coprono le 24 ore, Sonar calcola per ogni elemento **Lden** e **Lnight indicativi**
+(campi `lden_ind`, `lnight_ind`) con somma energetica delle fasce (10^(L/10), mai media aritmetica dei dB): Lden secondo la
+Direttiva 2002/49/CE (giorno 07–19, sera 19–23 +5 dB, notte 23–07 +10 dB), Lnight = LAeq 23–07. Ogni ora prende il valore
+della fascia che la contiene. Effetti nella consegna:
+
+- GPKG: stili Lden (predefinito), Lnight e lo stile `style` su `style_field`; `.lyrx` su Lden;
+- PNG: **una tavola per output** (righe = layer, colonne = indicatori), al posto delle tavole per fascia.
+
+`scale`: `"city"` = classi a passi regolari in dB (1, 2, 2,5, 5 o 10 dB, al massimo `max_classes`) tra i percentili `clip`
+dei valori della città, una sola scala per indicatore su tutti i layer e gli output; `"who"` = classi fisse ancorate alle
+soglie OMS 2018 per il traffico stradale (53 dB Lden, 45 dB Lnight) e alle classi di 5 dB della Direttiva. Usare `"who"`
+solo quando i valori del modello sono confrontabili con livelli in facciata (oggi non lo sono: vedi `HANDOFF_MODEL.md`).
 
 ## Funzione `run(ctx)`
 

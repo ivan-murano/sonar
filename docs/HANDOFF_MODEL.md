@@ -58,3 +58,9 @@ Stato al 14/11/2026. Scritto per la chat che continua lo sviluppo del **modello*
 ## 7. Stato scientifico (dal progetto del modello)
 
 Vedi `docs/STATUS.md`, `docs/DECISIONS.md` (D054–D058), `docs/handoff/city_tool.md`, `docs/handoff/sonar_software.md`. In breve: cinque M3 di Barcellona in media energetica, stime sperimentali senza misure locali di verifica, H3 R10 e strade, sei fasce, feriale/festivo; verifica interurbana Dublino e popolazione/esposizione Napoli ancora da eseguire con i download reali; spiegazione pubblica del modello (`docs/MODEL.md` del repository del software) da scrivere.
+
+## 8. Richieste del software al modello (14/11/2026)
+
+- **Livello minimo e soglie sanitarie.** Su Melfi le stime hanno un pavimento per fascia (es. 48,0–48,4 dB 00–06, ~53 dB di giorno) anche in aperta campagna: ne derivano Lden indicativo ≈ 57,8 e Lnight ≈ 50,5 dB ovunque, cioè il 100% del territorio sopra le soglie OMS (53/45) e UE (55/50). Per questo Sonar usa la scala `"city"` e dichiara che i valori non vanno confrontati con le soglie OMS. Se il modello potrà fornire livelli confrontabili (scala in facciata, pavimento realistico), basta impostare `"scale": "who"` in `indicators` del manifest.
+- **Indicatori.** Sonar calcola Lden/Lnight indicativi dalle sei fasce (vedi `MODEL_CONTRACT.md`, `indicators`). Le fasce non coincidono con i periodi della Direttiva (07–19/19–23/23–07): ogni ora prende il valore della sua fascia. Se il modello producesse direttamente i livelli orari o per periodo, la stima sarebbe più fedele.
+- **Nome visibile.** Il modello si chiama *Pharos Noise* in tutto ciò che vede l'utente. Restano "M3"/"Barcelona" nei testi prodotti dal codice del modello: righe del registro (es. «Programmi di apertura delle attività (M3)») e `*_metadata.json` (`model_id`, `target`, `model_ensemble`, `validation`). Da allineare nel modello quando opportuno.
