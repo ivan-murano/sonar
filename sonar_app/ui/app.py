@@ -127,7 +127,7 @@ class MainWindow(Movable, QWidget):
         self._then_start = False
 
         self.setWindowTitle(APP_NAME)
-        self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.FramelessWindowHint)
+        self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowMinimizeButtonHint)
         self.setFixedSize(640, 360)
         self.frame = Frame(self)
         outer = QVBoxLayout(self); outer.setContentsMargins(0, 0, 0, 0); outer.addWidget(self.frame)
@@ -173,6 +173,10 @@ class MainWindow(Movable, QWidget):
         self.theme_toggle.move(w - 18 - self.theme_toggle.width(), h - 18 - self.theme_toggle.height())
         self.lang_toggle.move(self.theme_toggle.x() - 8 - self.lang_toggle.width(), self.theme_toggle.y())
         super().resizeEvent(event)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        allow_taskbar_minimize(self)
 
     def apply_theme(self, theme, animate=False):
         self.theme, self.colors = theme, THEMES[theme]
@@ -417,6 +421,28 @@ class MainWindow(Movable, QWidget):
             self.process.setProperty('cancelled', True)
             self.process.kill(); self.process.waitForFinished(3000)
         super().closeEvent(event)
+
+
+def allow_taskbar_minimize(window):
+    """Windows: una finestra senza cornice non ha WS_MINIMIZEBOX, quindi il clic sull'icona nella barra delle
+    applicazioni non la riduce a icona. Si aggiungono gli stili (nessun effetto visivo senza barra del titolo)."""
+    if sys.platform != 'win32':
+        return
+    try:
+        import ctypes
+        hwnd = int(window.winId())
+        user32 = ctypes.windll.user32
+        get_style = getattr(user32, 'GetWindowLongPtrW', user32.GetWindowLongW)
+        set_style = getattr(user32, 'SetWindowLongPtrW', user32.SetWindowLongW)
+        get_style.restype = set_style.restype = ctypes.c_ssize_t
+        get_style.argtypes = [ctypes.c_void_p, ctypes.c_int]
+        set_style.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_ssize_t]
+        GWL_STYLE, WS_MINIMIZEBOX, WS_SYSMENU = -16, 0x00020000, 0x00080000
+        style = get_style(hwnd, GWL_STYLE)
+        if style & (WS_MINIMIZEBOX | WS_SYSMENU) != (WS_MINIMIZEBOX | WS_SYSMENU):
+            set_style(hwnd, GWL_STYLE, style | WS_MINIMIZEBOX | WS_SYSMENU)
+    except Exception:
+        pass
 
 
 def run(argv) -> int:

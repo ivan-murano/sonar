@@ -1,14 +1,24 @@
-# Sonar
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="sonar_app/assets/logo_dark.png">
+    <img src="sonar_app/assets/logo_light.png" alt="Sonar" width="420">
+  </picture>
+</p>
+
+<h3 align="center">
+  <a href="https://github.com/ivan-murano/sonar/releases/latest/download/Sonar-Setup.exe">⬇ Scarica Sonar per Windows · Download Sonar for Windows</a>
+</h3>
+<p align="center"><code>Sonar-Setup.exe</code> · Windows 10/11 64 bit · circa 140 MB · <a href="https://github.com/ivan-murano/sonar/releases/latest">note di rilascio / release notes</a></p>
 
 Mappe del rumore urbano ad alta risoluzione per le città europee, da dati aperti. Si scrive il nome della città, Sonar trova il confine comunale, scarica i dati che servono al modello, calcola le mappe e consegna una cartella ordinata con risultati, dati di input, licenza e autori.
 
 *High-resolution urban noise maps for European cities from open data. Type a city, Sonar finds its municipal boundary, downloads the data the model needs, computes the maps and delivers an organised folder with results, input data, license and authors.*
 
-## Scaricare e installare
+## Installare
 
-L'installer per Windows 10/11 a 64 bit è nella pagina [Releases](https://github.com/ivan-murano/sonar/releases) (`Sonar-Setup-<versione>.exe`, circa 140 MB). Si apre il file, si accetta la licenza e Sonar è pronto: Python, Qt, GDAL e il modello sono inclusi, non servono diritti di amministratore né altri programmi. Windows può mostrare l'avviso SmartScreen perché l'installer non è firmato digitalmente: *Ulteriori informazioni → Esegui comunque*. Si disinstalla da *Impostazioni → App*.
+Aprire `Sonar-Setup.exe` (link qui sopra), accettare la licenza e Sonar è pronto: Python, Qt, GDAL e il modello sono inclusi, non servono diritti di amministratore né altri programmi. Windows può mostrare l'avviso SmartScreen perché l'installer non è firmato digitalmente: *Ulteriori informazioni → Esegui comunque*. Si disinstalla da *Impostazioni → App*.
 
-Servono una connessione a internet e, secondo la dimensione della città, da alcuni minuti a circa 20 minuti di calcolo e 1–2 GB di spazio per i download in cache.
+Servono una connessione a internet, 1–2 GB di spazio per i download in cache e, secondo la dimensione della città, da un paio di minuti a circa 10 minuti di calcolo (Parigi, su un portatile con 12 thread).
 
 ## Uso
 

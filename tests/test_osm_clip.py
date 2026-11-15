@@ -30,6 +30,13 @@ def synthetic_pbf(path):
         writer.add_relation(osmium.osm.mutable.Relation(id=1, members=[('w', ways[3], 'outer'), ('w', untagged, 'inner')],
                                                           tags={'type': 'multipolygon', 'landuse': 'grass'}, version=1))
         writer.add_relation(osmium.osm.mutable.Relation(id=2, members=[('w', ways[-1], 'outer')], tags={'type': 'route'}, version=1))
+        # relazioni annidate e nodo con tag fuori dal riquadro: completamento dei riferimenti e tag tolti
+        writer.add_relation(osmium.osm.mutable.Relation(id=3, members=[('w', ways[4], 'outer'), ('r', 4, ''), ('n', coords[(26, 23)], 'label')],
+                                                          tags={'type': 'multipolygon', 'leisure': 'park'}, version=1))
+        writer.add_relation(osmium.osm.mutable.Relation(id=4, members=[('w', ways[-1], ''), ('r', 5, ''), ('n', coords[(28, 28)], '')],
+                                                          tags={'type': 'collection'}, version=1))
+        writer.add_relation(osmium.osm.mutable.Relation(id=5, members=[('n', coords[(1, 1)], ''), ('w', ways[0], '')],
+                                                          tags={'type': 'site', 'name': 'x'}, version=1))
 
 
 def test_fast_clip_identical_to_simple(tmp_path):

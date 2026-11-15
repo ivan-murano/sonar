@@ -80,6 +80,85 @@ def field_aliases(output: dict, style: dict, language: str, indicator_styles: di
     return aliases
 
 
+PROCESS_EXPORT_ROWS = 150_000      # oltre questa dimensione File Geodatabase e PNG vanno in processi separati
+
+
+def _read_layer(source, layer_name, map_fields, items):
+    import geopandas as gpd
+    frame = gpd.read_file(source, layer=layer_name, engine='pyogrio')
+    if items:
+        health.add_to_frame(frame, map_fields, items)
+    return frame
+
+
+def _side_gdb(jobs, gdb_path):
+    gdb, lyrx, warnings = [], [], []
+    for job in jobs:
+        try:
+            frame = _read_layer(job['source'], job['layer'], job['map_fields'], job['items'])
+            frame.to_file(gdb_path, layer=job['feature_class'], driver='OpenFileGDB', engine='pyogrio')
+            Path(job['lyrx_path']).write_text(job['lyrx_text'], encoding='utf-8')
+            gdb.append(job['feature_class']); lyrx.append(Path(job['lyrx_path']).name)
+        except Exception as exc:      # GDAL senza scrittura FileGDB: la consegna resta valida con GPKG e PNG
+            warnings.append(f'File Geodatabase non creato: {exc}')
+            shutil.rmtree(gdb_path, ignore_errors=True)
+            return [], [], warnings
+    return gdb, lyrx, warnings
+
+
+def _side_png(jobs, boundary, language, model_name):
+    names = []
+    for job in jobs:
+        frames = [(title, _read_layer(job['source'], layer, job['map_fields'], job['items'])) for title, layer in job['layers']]
+        if job['kind'] == 'indicators':
+            maps.render_indicators(frames, boundary, job['styles'], job['title'], Path(job['path']), language, model_name)
+        else:
+            title, frame = frames[0]
+            maps.render(frame, boundary, job['map_fields'], job['style'], job['title'], job['subtitle'], Path(job['path']), language, model_name)
+        names.append(Path(job['path']).name)
+    return names
+
+
+def _start_side_processes(plans, outputs, cfg, indicator_styles, gdb_path, lyrx_dir, maps_dir, boundary, city, language, model_name, no_data, log):
+    """File Geodatabase e tavole PNG in due processi, mentre il processo principale scrive i GeoPackage."""
+    import multiprocessing
+    from concurrent.futures import ProcessPoolExecutor
+    items = cfg['items'] if cfg else []
+    gdb_jobs, png_jobs = [], []
+    main = next(iter(indicator_styles.values()), None)
+    for plan in plans:
+        output, style, aliases, stem = plan['output'], plan['style'], plan['aliases'], plan['stem']
+        source = str(outputs[output['id']])
+        source_layers = [layer['name'] for layer in output['layers']]
+        for item, layer_name in zip(plan['layers'], source_layers):
+            feature_class = gdb_name(f'{output["id"]}_{item["name"]}')
+            lyrx_style, lyrx_field = (main, main['field']) if main else (style, output['style_field'])
+            lyrx_path = lyrx_dir / f'{stem}_{item["name"]}.lyrx'
+            text = styles.lyrx(lyrx_style, lyrx_field, item['kind'], f'{item["title"]} · {main["label"]}' if main else item['title'], str(gdb_path),
+                               feature_class, aliases.get(lyrx_field, lyrx_field), no_data)
+            gdb_jobs.append({'source': source, 'layer': layer_name, 'map_fields': output['map_fields'], 'items': items,
+                             'feature_class': feature_class, 'lyrx_path': str(lyrx_path), 'lyrx_text': text})
+        if cfg:
+            suffix = '_'.join(health.INDICATORS[i]['field'].split('_')[0].capitalize() for i in cfg['items'])
+            png_jobs.append({'kind': 'indicators', 'source': source, 'map_fields': output['map_fields'], 'items': items,
+                             'layers': [(item['layer_title'], name) for item, name in zip(plan['layers'], source_layers)],
+                             'styles': list(indicator_styles.values()), 'title': f'{city.name} — {pick(output.get("title"), language)}',
+                             'path': str(maps_dir / f'{stem}_{suffix}.png')})
+        else:
+            for item, name in zip(plan['layers'], source_layers):
+                png_jobs.append({'kind': 'plain', 'source': source, 'map_fields': output['map_fields'], 'items': [], 'layers': [(item['layer_title'], name)],
+                                 'style': style, 'title': f'{city.name} — {item["title"]}',
+                                 'subtitle': f'{pick(style.get("title"), language)} · {style.get("unit", "")} · {model_name}',
+                                 'path': str(maps_dir / f'{stem}_{item["name"]}.png')})
+    try:
+        pool = ProcessPoolExecutor(max_workers=2, mp_context=multiprocessing.get_context('spawn'))
+        return {'pool': pool, 'gdb': pool.submit(_side_gdb, gdb_jobs, str(gdb_path)),
+                'png': pool.submit(_side_png, png_jobs, boundary, language, model_name)}
+    except Exception as exc:
+        log(f'Esportazione in processi separati non disponibile ({type(exc).__name__}: {exc})')
+        return None
+
+
 def export_results(model, outputs: dict, root: Path, city, boundary_path: Path, language: str, report, log) -> dict:
     """outputs: {output_id: GPKG del modello}. report(fraction, message).
 
@@ -216,11 +295,28 @@ def export_results(model, outputs: dict, root: Path, city, boundary_path: Path, 
                 advance()
         return pngs
 
-    with ThreadPoolExecutor(max_workers=3) as pool:
-        f_gpkg, f_gdb, f_png = pool.submit(write_gpkg), pool.submit(write_gdb), pool.submit(write_png)
-        written['gpkg'] = f_gpkg.result()
-        written['gdb'], written['lyrx'] = f_gdb.result()
-        written['png'] = f_png.result()
+    total_rows = sum(len(item['frame']) for plan in plans for item in plan['layers'])
+    side = None
+    if total_rows >= PROCESS_EXPORT_ROWS:
+        side = _start_side_processes(plans, outputs, cfg, indicator_styles, gdb_path, lyrx_dir, maps_dir, boundary, city, language,
+                                     model_name, NO_DATA[language], log)
+    if side is None:
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            f_gpkg, f_gdb, f_png = pool.submit(write_gpkg), pool.submit(write_gdb), pool.submit(write_png)
+            written['gpkg'] = f_gpkg.result()
+            written['gdb'], written['lyrx'] = f_gdb.result()
+            written['png'] = f_png.result()
+    else:
+        written['gpkg'] = write_gpkg()
+        step(t('ex_gdb', language))
+        try:
+            written['gdb'], written['lyrx'], warnings = side['gdb'].result()
+            for warning in warnings:
+                state['gdb_ok'] = False
+                written['warnings'].append(warning); log(warning)
+            written['png'] = side['png'].result()
+        finally:
+            side['pool'].shutdown(wait=True)
     gdb_ok = state['gdb_ok']
     if indicator_styles:
         written['indicators'] = {k: {'field': v['field'], 'scale': v['scale'], 'breaks': v['breaks']} for k, v in indicator_styles.items()}

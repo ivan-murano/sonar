@@ -172,3 +172,33 @@ L'utente non è uno sviluppatore e non vuole toccare file: la prossima chat eseg
 - Prossimi colli di bottiglia per le città grandi, nel codice del modello: ricevitori (43 s a Napoli), previsione (83 s), più l'esportazione di Sonar (43 s).
 - **Parigi sul PC di sviluppo** (372.260 ricevitori; 218.729 strade, 300.068 edifici, 180.679 POI OSM): fase feature 7 min 7 s (35 s di verifica + 389 s di calcolo su 6 processi, differenza 8,5e-9; prima oltre un'ora su un PC più potente). Totale 1.751 s (prima 9.153 s): download 5 min 50 s, lettura OSM 1 min 45 s, supporti 65 s, ricevitori 2 min 22 s, programmi 68 s, matrici dei programmi 3 min 46 s, previsione 3 min 50 s, esportazione Sonar 1 min 55 s.
 - `SONAR_FAST_FEATURES=0` ripristina il calcolo originale; `SONAR_FEATURE_WORKERS=n` fissa il numero di processi.
+
+## 12. Sonar 1.1.0: velocità, logo, messaggi (15/11/2026)
+
+Obiettivo dell'utente: Parigi dalla scritta del nome all'esportazione in circa 10 minuti, senza cambiare i risultati del modello e restando robusti ai suoi aggiornamenti. Ultima misura sul PC di sviluppo (portatile, 12 thread): **619 s** (prima 1.751 s; su un PC più potente, prima delle modifiche, 9.153 s). L'utente ha accettato questa versione.
+
+| Fase (Parigi) | s |
+|---|---|
+| download e ritaglio OSM (estratto Île-de-France già in cache) | 90 |
+| lettura OSM (6 processi) e salvataggio | 50 |
+| normalizzazione | 15 |
+| supporti H3 e segmenti | 34 |
+| ricevitori | 44 |
+| feature statiche (6 processi; POI statici già pronti) | 205 |
+| programmi e matrici delle attività | 0 (calcolati prima) |
+| previsione e scrittura dei GPKG del modello | 125 |
+| esportazione Sonar (GDB e PNG in processi separati) | 47 |
+
+Cosa fa cosa (tutto a runtime dall'adattatore, nessun file del modello modificato; ogni sostituzione verifica la firma della funzione e torna all'originale in caso di errore):
+- `providers/osm.py`: ritaglio con callback osmium (prima lettura) e riferimenti all'indietro completati in C++ (`IdTracker`), un'unica scrittura filtrata per id: file **identico al byte** a quello di `BackReferenceWriter` (test con relazioni annidate in `tests/test_osm_clip.py`).
+- `parallel.parallel_read_pbf`: la `read_pbf` originale gira in N processi, ognuno tratta gli oggetti con `id % N == k`; liste riunite nell'ordine del file. Identica alla lettura unica (verificato su Parigi e Melfi). Sotto 8 MB resta la lettura singola (`SONAR_PBF_PARALLEL_BYTES`).
+- `speculative.py`: all'inizio del passo 2 parte un processo che calcola con le funzioni originali i POI statici (passo 4), i programmi delle attività (passo 5) e, quando il passo 4 segnala i ricevitori pronti, le matrici delle attività. Il risultato si usa solo se l'impronta degli argomenti (tutte le colonne e le geometrie) coincide.
+- `export`: per consegne oltre 150.000 righe File Geodatabase e PNG sono scritti in due processi mentre il processo principale scrive i GeoPackage.
+- Melfi accelerata contro originale: GeoPackage identici (differiscono solo `run_id` e i metadati con data e ora).
+
+Altro nella 1.1.0:
+- Logo e icona definitivi: `sonar_app/assets/logo_light.png` / `logo_dark.png` (scelti secondo il tema), `sonar.ico` (exe, finestra, installer con `SetupIconFile`). Originali dell'utente in `D:\noise_pollution\outputs\sonar\icon` e `logotype`.
+- Barra di avanzamento: testi per passo nella lingua della UI (`PREPARE_STEPS`, `PREDICT_STEPS` nell'adattatore) con percentuale; le righe del modello vanno solo nel registro.
+- Windows: alla finestra senza cornice si aggiungono `WS_MINIMIZEBOX | WS_SYSMENU`, così il clic sull'icona nella barra delle applicazioni la riduce a icona.
+- L'installer si chiama sempre `Sonar-Setup.exe`: il link `releases/latest/download/Sonar-Setup.exe` nel README resta valido a ogni release.
+- Restano rami solo `main`; il tag `v1.0.0` punta a un commit riscritto (l'utente può eliminarlo dalla pagina Releases).

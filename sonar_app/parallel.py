@@ -252,3 +252,109 @@ def parallel_road_segments(original, module_name, attribute, code_paths, log=pri
         log(f'  segmenti stradali calcolati su {workers} processi in {time.monotonic() - started:.0f} s')
         return roads, info
     return road_segments
+
+
+# ---------------------------------------------------------------- lettura OSM (prepare, passo 1)
+
+PBF_PARALLEL_BYTES = int(os.environ.get('SONAR_PBF_PARALLEL_BYTES', 8 * 2 ** 20))      # sotto: lettura già breve
+
+
+def _pbf_part_job(module_name, attribute, args, kwargs, part, parts):
+    """La funzione originale del modello legge tutto il file, ma i suoi handler Python trattano solo gli oggetti
+    con id % parts == part (posizioni dei nodi, filtro per chiavi e lettura restano quelle del modello, in C++)."""
+    import importlib
+    module = importlib.import_module(module_name)
+    read = getattr(module, attribute)
+
+    def only_part(cls, methods):
+        attrs = {}
+        for name in methods:
+            method = getattr(cls, name, None)
+            if method is None:
+                continue
+            def wrapper(self, obj, _method=method):
+                if obj.id % parts == part:
+                    _method(self, obj)
+            attrs[name] = wrapper
+        return type(cls.__name__, (cls,), attrs)
+
+    fast, legacy_class, collector = module.fast_reader_class, module.osm_reader_class, module.RoadWayCollector
+    module.fast_reader_class = lambda: only_part(fast(), ('node', 'way', 'relation'))
+    module.osm_reader_class = lambda: only_part(legacy_class(), ('node', 'way', 'relation'))
+    module.RoadWayCollector = only_part(collector, ('way',))
+    try:
+        return read(*args, **{**kwargs, 'log': lambda *_: None})
+    finally:
+        module.fast_reader_class, module.osm_reader_class, module.RoadWayCollector = fast, legacy_class, collector
+
+
+def _pbf_order(pbf_path, keys):
+    """Posizione nel file di nodi e way che passano il filtro per chiavi del modello (ordine dei risultati)."""
+    import osmium
+
+    class Order(osmium.SimpleHandler):
+        def __init__(self):
+            super().__init__(); self.nodes, self.ways, self.seq = {}, {}, 0
+
+        def node(self, n):
+            self.nodes[n.id] = self.seq; self.seq += 1
+
+        def way(self, w):
+            self.ways[w.id] = self.seq; self.seq += 1
+
+    handler = Order()
+    with osmium.io.Reader(str(pbf_path)) as reader:
+        osmium.apply(reader, osmium.filter.KeyFilter(*keys), handler)
+    return handler.nodes, handler.ways
+
+
+def parallel_read_pbf(original, module_name, attribute, keys, code_paths, log=print):
+    """`read_pbf(pbf_path, bounds, index_type, collect_road_ways, prefilter, log)` su più processi.
+
+    Ogni processo esegue la funzione originale sugli oggetti con id % N == k; i risultati sono riuniti
+    nell'ordine del file (stesse liste, stessi contatori della lettura unica). Qualsiasi errore: lettura originale."""
+    def read_pbf(pbf_path, bounds, *args, **kwargs):
+        size = Path(pbf_path).stat().st_size if Path(pbf_path).exists() else 0
+        workers = default_workers(size)
+        if size < PBF_PARALLEL_BYTES or workers < 2:
+            return original(pbf_path, bounds, *args, **kwargs)
+        user_log = kwargs.get('log', args[3] if len(args) > 3 else print)
+        try:
+            started = time.monotonic()
+            with _pool(workers, code_paths) as pool:
+                futures = [pool.submit(_pbf_part_job, module_name, attribute, (str(pbf_path), bounds) + tuple(args[:3]),
+                                       {k: v for k, v in kwargs.items() if k != 'log'}, k, workers) for k in range(workers)]
+                nodes, ways = _pbf_order(pbf_path, keys)
+                parts = [f.result() for f in futures]
+            result = _merge_pbf_parts(parts, nodes, ways)
+        except Exception as exc:
+            log(f'Lettura OSM su più processi non riuscita ({type(exc).__name__}: {exc}); lettura in un solo processo')
+            return original(pbf_path, bounds, *args, **kwargs)
+        user_log(f'  OSM: {len(result["roads"]):,} strade, {len(result["buildings"]):,} edifici, {len(result["poi"]):,} POI; snapshot {result["snapshot"]}')
+        log(f'  lettura OSM su {workers} processi in {time.monotonic() - started:.0f} s')
+        return result
+    return read_pbf
+
+
+def _merge_pbf_parts(parts, nodes, ways):
+    def position(unit_id):
+        kind, ident = unit_id.split('/', 1)
+        return (nodes if kind == 'node' else ways)[int(ident)]
+
+    first = parts[0]
+    result = dict(first)
+    for name in ('roads', 'buildings', 'poi'):
+        merged = [item for part in parts for item in part[name]]
+        merged.sort(key=lambda item: position(item['unit_id']))
+        result[name] = merged
+    if first.get('road_ways') is not None:
+        merged = [way for part in parts for way in part['road_ways']]
+        merged.sort(key=lambda way: ways[way['id']])
+        result['road_ways'] = merged
+    for name in ('ways_prefiltered', 'invalid_way_locations', 'relation_pois_excluded'):
+        values = [part.get(name) for part in parts]
+        result[name] = None if any(v is None for v in values) else sum(values)
+    for name in ('snapshot', 'header_box'):
+        if any(part.get(name) != first.get(name) for part in parts):
+            raise ValueError(f'{name} diverso tra i processi')
+    return result
