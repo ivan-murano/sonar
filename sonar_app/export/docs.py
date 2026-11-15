@@ -24,7 +24,7 @@ def software_license_text() -> str:
 
 README = {
     'it': """Sonar {version} — {city}
-Generato il {when} con il modello «{model}» (versione {model_version}).
+Generato il {when} · {model_title} {model_version}
 
 COSA C'È IN QUESTA CARTELLA
 - {results}/{gpkg}: GeoPackage con lo stile già applicato (QGIS lo carica in automatico)
@@ -49,7 +49,7 @@ ATTRIBUZIONI
 {boundary_attribution}
 """,
     'en': """Sonar {version} — {city}
-Generated on {when} with the model “{model}” (version {model_version}).
+Generated on {when} · {model_title} {model_version}
 
 WHAT IS IN THIS FOLDER
 - {results}/{gpkg}: GeoPackage with the style already applied (QGIS loads it automatically)
@@ -99,13 +99,13 @@ DATA AND RESULTS LICENSES
 AUTHORS_TEXT = {
     'it': """Sonar {version}
 Software: {software_authors}
-Modello «{model}» {model_version}: {model_authors}
+{model_title} {model_version}: {model_authors}
 Spiegazione del modello: {doc_url}
 Repository: {repo_url}
 """,
     'en': """Sonar {version}
 Software: {software_authors}
-Model “{model}” {model_version}: {model_authors}
+{model_title} {model_version}: {model_authors}
 Model explanation: {doc_url}
 Repository: {repo_url}
 """,
@@ -135,6 +135,11 @@ INDICATORS_TEXT = {
 }
 
 
+def _capital(text: str) -> str:
+    """Iniziale maiuscola per l'inizio di riga («modello acustico di Sonar» → «Modello acustico di Sonar»)."""
+    return text[:1].upper() + text[1:]
+
+
 def write_documents(root: Path, language: str, model, city, notes_extra: str = '') -> list[Path]:
     from .health import config as indicators_config
     manifest = model.manifest
@@ -142,7 +147,7 @@ def write_documents(root: Path, language: str, model, city, notes_extra: str = '
     if has_indicators:
         notes_extra = INDICATORS_TEXT[language] + notes_extra
     values = dict(version=__version__, city=city.name, when=datetime.now().strftime('%d/%m/%Y %H:%M' if language == 'it' else '%Y-%m-%d %H:%M'),
-                  model=pick(manifest['name'], language), model_version=model.version, results=folder('results', language),
+                  model=pick(manifest['name'], language), model_title=_capital(pick(manifest['name'], language)), model_version=model.version, results=folder('results', language),
                   gpkg=folder('gpkg', language), gdb=folder('gdb', language), styles=folder('arcgis_styles', language), maps=folder('maps', language),
                   inputs=folder('inputs', language), boundary=folder('boundary', language), lau_year=city.lau_year, lau_id=city.gisco_id or city.lau_id,
                   sources_file=filename('sources', language), license_file=filename('license', language), authors_file=filename('authors', language),

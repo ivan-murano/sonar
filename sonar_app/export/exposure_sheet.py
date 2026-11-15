@@ -19,6 +19,7 @@ ACCENT, ACCENT_SOFT = '#1F4E79', '#dbe6f1'
 # classi: verde sotto la prima classe della Direttiva, poi dal giallo al bordeaux; grigio per «senza stima»
 CLASS_COLORS = ['#93c9ad', '#fee08b', '#fdae61', '#f46d43', '#d73027', '#a50026']
 NONE_COLOR = '#c4c7cc'
+VALIDATED_MODELS = {'m3_barcellona'}   # id dei modelli a cui si riferiscono i numeri di accuratezza del testo 'validity'
 ROW = 6.2           # altezza di riga delle tabelle (mm)
 BAR_W = 66.0        # lunghezza della barra più lunga (mm)
 
@@ -58,7 +59,7 @@ def _threshold(day, key, value):
     return 0.0
 
 
-def render(path: Path, result: dict, city: str, model_name: str, language: str, dpi: int = 220) -> Path:
+def render(path: Path, result: dict, city: str, model_name: str, language: str, dpi: int = 220, model_id: str | None = None) -> Path:
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
@@ -174,8 +175,8 @@ def render(path: Path, result: dict, city: str, model_name: str, language: str, 
     # ---------------------------------------------------------------- come leggere
     note_lines = textwrap.wrap(T['note'], 122)
     foot_top = H - 14.0 - 4.0 * len(note_lines) - 6.0            # le note stanno sopra le fonti
-    # numeri di accuratezza solo per il modello a cui si riferiscono (README, docs/MODEL.md)
-    claim = T['validity'] if 'pharos' in model_name.lower() else T['validity_generic'].format(model=model_name)
+    # numeri di accuratezza solo per il modello a cui si riferiscono (README, docs/MODEL.md), riconosciuto dall'id del manifest
+    claim = T['validity'] if model_id in VALIDATED_MODELS else T['validity_generic'].format(model=model_name)
     lines = textwrap.wrap(claim, 124)
     bh = 9.0 + 4.3 * len(lines)
     by = max(y + 8.0, min(foot_top - bh - 7.0, y + 14.0))
@@ -191,7 +192,7 @@ def render(path: Path, result: dict, city: str, model_name: str, language: str, 
     for k, line in enumerate(note_lines):
         text(X0, ny + 4.0 * k, line, 7.2, color=MID)
     text(X0, H - 12, T['sources'], 6.8, color=MID)
-    text(X1, H - 12, f'Sonar · {model_name}', 7, 'bold', color=ACCENT, ha='right')
+    text(X1, H - 12, 'Sonar', 7, 'bold', color=ACCENT, ha='right')
     fig.savefig(path, dpi=dpi)
     plt.close(fig)
     return path

@@ -1,10 +1,10 @@
-# Pharos Noise, il modello acustico di Sonar
+# Il modello acustico di Sonar
 
-*English summary: Pharos Noise is a machine-learning model (gradient boosting) trained on the Barcelona acoustic sensor network. It describes every outdoor calculation point by its urban context within 100, 250 and 500 m (roads, buildings, points of interest, businesses open at that hour) plus the hour, day type and school calendar, and estimates hourly LAeq for a school weekday and a Sunday/holiday. Five models are combined by energy averaging into six time bands. At 30 Barcelona stations never used for training the hourly mean absolute error is 3.6 dB (correlation 0.88); at time-band level it is 3.1 dB.*
+*English summary: the Sonar acoustic model is a machine-learning model (gradient boosting) trained on the Barcelona acoustic sensor network. It describes every outdoor calculation point by its urban context within 100, 250 and 500 m (roads, buildings, points of interest, businesses open at that hour) plus the hour, day type and school calendar, and estimates hourly LAeq for a school weekday and a Sunday/holiday. Five models are combined by energy averaging into six time bands. At 30 Barcelona stations never used for training the hourly mean absolute error is 3.6 dB (correlation 0.88); at time-band level it is 3.1 dB.*
 
 ## Idea
 
-Il rumore urbano dipende soprattutto da quanto traffico e quante attività ci sono attorno a un punto, e da come cambiano durante la giornata. Pharos Noise impara questo legame da una città dove il rumore è misurato in continuo, Barcellona, e lo applica a qualsiasi città europea con dati aperti disponibili ovunque: OpenStreetMap, Overture Maps Places e il calendario del paese.
+Il rumore urbano dipende soprattutto da quanto traffico e quante attività ci sono attorno a un punto, e da come cambiano durante la giornata. Il modello impara questo legame da una città dove il rumore è misurato in continuo, Barcellona, e lo applica a qualsiasi città europea con dati aperti disponibili ovunque: OpenStreetMap, Overture Maps Places e il calendario del paese.
 
 ## Dati di addestramento
 
@@ -44,7 +44,7 @@ Gli orari di apertura vengono dagli orari dichiarati in OpenStreetMap quando aff
 
 Sulle 30 postazioni di Barcellona mai usate in nessuno dei cinque addestramenti (maggio 2026):
 
-| Misura | Pharos Noise |
+| Misura | Modello |
 |---|---|
 | Errore medio assoluto orario | 3,6 dB |
 | Correlazione con le misure | 0,88 |
@@ -58,7 +58,7 @@ Febbraio e luglio danno risultati simili (3,7 dB). Gli studi recenti più vicini
 
 Il trasferimento a una città mai vista è stato verificato a Dublino con la rete di sensori Sonitus, secondo un protocollo fissato e registrato (con impronta SHA-256) prima di vedere i dati, con un'unica esecuzione e senza alcun adattamento del modello. Periodo principale maggio 2026, 16 postazioni, 11.869 ore.
 
-| Misura | Pharos Noise | Riferimento solo ora del giorno |
+| Misura | Modello | Riferimento solo ora del giorno |
 |---|---|---|
 | Correlazione di rango fra luoghi (Spearman) | 0,82 (IC 90% 0,58–0,92) | — |
 | Errore medio sui livelli dei luoghi, al netto dello scarto di città | 4,2 dB | 5,5 dB |

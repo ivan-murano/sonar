@@ -1,4 +1,4 @@
-"""Adattatore del modello Pharos Noise (identificativo interno m3_barcellona) al contratto sonar-model/1.
+"""Adattatore del modello acustico di Sonar (identificativo interno m3_barcellona) al contratto sonar-model/1.
 
 Chiama la pipeline del progetto del modello (pacchetto `sonar` in <codice>/src) con i dati già
 scaricati da Sonar: acquire da file locali (nessun download), prepare, predict. Il codice del
@@ -42,7 +42,7 @@ def code_root(model_dir: Path) -> Path:
     for candidate in ([Path(env)] if env else []) + [model_dir / 'code']:
         if (candidate / 'src' / 'sonar' / 'cli.py').exists():
             return candidate.resolve()
-    raise FileNotFoundError('Codice del modello Pharos Noise non trovato: impostare SONAR_MODEL_CODE oppure includere la cartella code/')
+    raise FileNotFoundError('Codice del modello acustico non trovato: impostare SONAR_MODEL_CODE oppure includere la cartella code/')
 
 
 def _accelerate_static_features(code_paths=None):

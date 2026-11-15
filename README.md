@@ -10,9 +10,9 @@
 </h3>
 <p align="center"><code>Sonar-Setup.exe</code> · Windows 10/11 64 bit · circa 170 MB</p>
 
-**Sonar** calcola la mappa del rumore urbano di una città europea a partire dal suo nome. Si scrive la città, si preme *Avvia*: Sonar trova il confine comunale, scarica i dati aperti che servono, applica il modello acustico **Pharos Noise** e consegna una cartella pronta per QGIS e ArcGIS, con il livello sonoro stimato ogni 100 metri e su ogni tratto di strada, ora per ora, in un giorno feriale e in un festivo. Tutto gira sul proprio PC, senza account e senza dati da preparare: per una città come Parigi bastano circa dieci minuti.
+**Sonar** calcola la mappa del rumore urbano di una città europea a partire dal suo nome. Si scrive la città, si preme *Avvia*: Sonar trova il confine comunale, scarica i dati aperti che servono, applica il proprio modello acustico e consegna una cartella pronta per QGIS e ArcGIS, con il livello sonoro stimato ogni 100 metri e su ogni tratto di strada, ora per ora, in un giorno feriale e in un festivo. Tutto gira sul proprio PC, senza account e senza dati da preparare: per una città come Parigi bastano circa dieci minuti.
 
-*Sonar maps urban noise for any European city from its name. It finds the municipal boundary, downloads open data, runs the Pharos Noise model and delivers a GIS-ready folder with estimated sound levels every 100 m and on every road segment, for a weekday and a holiday, in six time bands. It runs on your own PC; Paris takes about ten minutes.*
+*Sonar maps urban noise for any European city from its name. It finds the municipal boundary, downloads open data, runs its acoustic model and delivers a GIS-ready folder with estimated sound levels every 100 m and on every road segment, for a weekday and a holiday, in six time bands. It runs on your own PC; Paris takes about ten minutes.*
 
 ## Perché
 
@@ -55,9 +55,9 @@ Sonar è un'applicazione Windows scritta in Python con interfaccia Qt.
 
 ![Software Sonar](docs/img/software.png)
 
-## Il modello Pharos Noise
+## Il modello
 
-Pharos Noise è un modello di **machine learning** che impara il legame fra la forma della città e il rumore misurato. È addestrato sulla rete di sensori acustici della città di Barcellona (oltre 350.000 ore di misure orarie) con il metodo *gradient boosting*, che cerca da solo la combinazione di variabili con l'errore più piccolo fra livello misurato e livello stimato.
+Il modello di Sonar è un modello di **machine learning** che impara il legame fra la forma della città e il rumore misurato. È addestrato sulla rete di sensori acustici della città di Barcellona (oltre 350.000 ore di misure orarie) con il metodo *gradient boosting*, che cerca da solo la combinazione di variabili con l'errore più piccolo fra livello misurato e livello stimato.
 
 **Come stima il rumore in una città nuova**
 1. Legge da OpenStreetMap strade, edifici e punti di interesse.
@@ -71,11 +71,11 @@ Poi **cinque modelli** addestrati su cinque suddivisioni diverse dei dati di Bar
 
 **Quanto è accurato.** Sulle 30 postazioni di Barcellona mai usate per l'addestramento la stima oraria ha un errore medio di **3,6 dB** e una correlazione di **0,88** con le misure; a livello di fascia oraria l'errore medio è di **3,1 dB**, e la differenza fra giorno e notte è riprodotta quasi esattamente (6,85 dB stimati contro 6,83 misurati). Sono valori in linea con gli studi recenti più vicini, che riportano errori quadratici medi fra 4,4 e 4,9 dB con dati e protocolli diversi ([Helbich et al. 2025](https://doi.org/10.1016/j.scs.2025.106169), [Haselhoff et al. 2026](https://www.nature.com/articles/s41370-026-00855-w)).
 
-**Verifica in una città nuova.** A Dublino (16 postazioni della rete Sonitus, maggio 2026), con un protocollo fissato e registrato prima di vedere i dati e senza alcuna taratura locale, Pharos Noise riconosce quali luoghi sono più rumorosi e quali più quieti: la correlazione di rango fra stime e misure è **0,82** (intervallo al 90%: 0,58–0,92) e il profilo della giornata è riprodotto con correlazione **0,88**. Il modello batte nettamente un riferimento basato solo sull'ora del giorno (errore orario medio 6,9 contro 10,5 dB). I livelli assoluti risultano in media più alti di 5,4 dB: con le misure di cinque sensori locali lo scarto medio si annulla e l'errore orario scende a 5,8 dB. Secondo il protocollo il risultato è *parziale*: superati i criteri sull'ordinamento dei luoghi e sul confronto con il riferimento, non quelli sull'errore orario entro 6 dB e sullo scarto medio entro 3 dB senza taratura.
+**Verifica in una città nuova.** A Dublino (16 postazioni della rete Sonitus, maggio 2026), con un protocollo fissato e registrato prima di vedere i dati e senza alcuna taratura locale, il modello riconosce quali luoghi sono più rumorosi e quali più quieti: la correlazione di rango fra stime e misure è **0,82** (intervallo al 90%: 0,58–0,92) e il profilo della giornata è riprodotto con correlazione **0,88**. Il modello batte nettamente un riferimento basato solo sull'ora del giorno (errore orario medio 6,9 contro 10,5 dB). I livelli assoluti risultano in media più alti di 5,4 dB: con le misure di cinque sensori locali lo scarto medio si annulla e l'errore orario scende a 5,8 dB. Secondo il protocollo il risultato è *parziale*: superati i criteri sull'ordinamento dei luoghi e sul confronto con il riferimento, non quelli sull'errore orario entro 6 dB e sullo scarto medio entro 3 dB senza taratura.
 
 Spiegazione completa: [docs/MODEL.md](docs/MODEL.md).
 
-![Modello Pharos Noise](docs/img/modello.png)
+![Il modello acustico di Sonar](docs/img/modello.png)
 
 ## Fonti e licenze dei dati
 
@@ -102,7 +102,7 @@ Ivan Murano e Laura Ripoli. Software e modello sono distribuiti secondo [LICENSE
 ```
 py -3.12 -m venv .venv
 .venv\Scripts\python -m pip install -r requirements-build.txt
-set SONAR_MODEL_CODE=D:\noise_pollution          rem codice del modello Pharos Noise
+set SONAR_MODEL_CODE=D:\noise_pollution          rem codice del modello acustico
 .venv\Scripts\python -m sonar_app                rem interfaccia
 .venv\Scripts\python -m sonar_app --selftest     rem controllo dell'installazione
 .venv\Scripts\python -m pytest tests

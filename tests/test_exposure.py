@@ -51,14 +51,16 @@ def test_residents_are_conserved_and_written(tmp_path):
             assert sum(v for _, v in day[key]) == pytest.approx(expected, rel=1e-7)
         assert day['lden'][-1][1] > 0                                    # la cella senza stima ha residenti
 
-    xlsx = exposure.write_xlsx(tmp_path / 'esposti.xlsx', result, 'Prova', 'Pharos Noise', 'it')
+    xlsx = exposure.write_xlsx(tmp_path / 'esposti.xlsx', result, 'Prova', 'modello acustico di Sonar', 'it')
     wb = openpyxl.load_workbook(xlsx)
     cells = wb['Celle H3']
     assert cells['A2'].value == frame['unit_id'].iloc[0]                # identificativo H3, non il numero di riga
     assert sum(r[1].value for r in cells.iter_rows(min_row=2)) == pytest.approx(expected, abs=len(frame) * 0.005)
 
     for language in ('it', 'en'):
-        png = exposure.render_png(tmp_path / f'esposti_{language}.png', result, 'Prova', 'Pharos Noise', language)
+        name = {'it': 'modello acustico di Sonar', 'en': 'Sonar acoustic model'}[language]      # come pick(manifest['name'])
+        png = exposure.render_png(tmp_path / f'esposti_{language}.png', result, 'Prova', name, language,
+                                  model_id='m3_barcellona')
         assert png.stat().st_size > 50_000
 
 
@@ -66,3 +68,23 @@ def test_share_formatting():
     assert exposure._pct(0, 100, 'it') == '0,0%'
     assert exposure._pct(1, 10_000, 'it') == '< 0,1%'
     assert exposure._pct(1, 8, 'en') == '12.5%'
+
+
+def test_accuracy_text_depends_on_model_id_not_on_name(tmp_path, monkeypatch):
+    """I numeri di accuratezza compaiono solo per il modello a cui si riferiscono (id del manifest), qualunque sia il nome."""
+    from matplotlib.figure import Figure
+    raster, boundary, frame, _ = _case(tmp_path)
+    result = exposure.compute([('Giorno feriale scolastico', 'feriale', frame)], raster, boundary)
+    seen = []
+    original = Figure.savefig
+    def savefig(self, *args, **kwargs):
+        seen.append([t.get_text() for ax in self.axes for t in ax.texts])
+        return original(self, *args, **kwargs)
+    monkeypatch.setattr(Figure, 'savefig', savefig)
+    exposure.render_png(tmp_path / 'a.png', result, 'Prova', 'modello acustico di Sonar', 'it', model_id='m3_barcellona')
+    exposure.render_png(tmp_path / 'b.png', result, 'Prova', 'modello acustico di Sonar', 'it', model_id='altro')
+    exposure.render_png(tmp_path / 'c.png', result, 'Prova', 'Altro modello', 'en')
+    joined = [' '.join(texts) for texts in seen]
+    assert '3,6 dB' in joined[0] and 'Il modello stima' in joined[0]
+    assert '3,6 dB' not in joined[1] and '3.6 dB' not in joined[2]
+    assert all('Sonar' in texts and not any(t.startswith('Sonar ·') for t in texts) for texts in seen)   # piè di pagina: solo «Sonar»

@@ -1,6 +1,6 @@
 # Passaggio di consegne — sviluppo del software Sonar
 
-Stato al 15/11/2026 (Sonar 1.2.1; storia delle sessioni nei §9–15). Scritto per chi riprende lo sviluppo del **software** (non del modello acustico: per quello vedi [HANDOFF_MODEL.md](HANDOFF_MODEL.md)).
+Stato al 15/11/2026 (Sonar 1.2.1; storia delle sessioni nei §9–16). Scritto per chi riprende lo sviluppo del **software** (non del modello acustico: per quello vedi [HANDOFF_MODEL.md](HANDOFF_MODEL.md)).
 
 ## 1. Cosa vuole l'utente (Ivan Murano)
 
@@ -134,7 +134,7 @@ L'utente non è uno sviluppatore e non vuole toccare file: la prossima chat eseg
 **Dove ci si è fermati**: l'utente ha completato da sé la prova con Melfi e riferisce che **ha funzionato** (consegna prodotta con i download reali); il contenuto della consegna non è stato ancora controllato file per file da una sessione. Release e merge non fatti.
 
 **Decisioni dell'utente (14/11)**
-- Il modello si chiama **Pharos Noise** in tutto ciò che l'utente vede (farà parte del futuro software Pharos). `m3_barcellona` resta solo come identificativo interno/cartella; `name` del manifest già cambiato, il resto dei testi è da allineare.
+- Il modello non ha un nome pubblico proprio: in tutto ciò che l'utente vede compare come «modello acustico di Sonar» (EN «Sonar acoustic model»), nei testi semplicemente «il modello». `m3_barcellona` resta solo come identificativo interno/cartella.
 - Problema aperto delle mappe PNG: con la scala fissa 40–80 dB(A) l'urbano risulta tutto rosso e il rurale bianco, senza varianza interna leggibile. Serve una legenda automatica che mostri le differenze dentro l'area costruita. Proposta in `docs/NEXT_CHAT_PROMPT.md`; da decidere con l'utente prima di implementare.
 
 **Per riprendere**
@@ -151,12 +151,12 @@ L'utente non è uno sviluppatore e non vuole toccare file: la prossima chat eseg
 
 **Fatto e verificato**
 - Ramo `fix-lookup-thread` controllato: la copia sul PC coincideva con il ramo (md5 file per file).
-- **Pharos Noise**: nome del modello allineato in AUTORI, note del manifest (senza "M3"/"Barcellona"), MODEL.md, note di rilascio, prima riga del registro. `m3_barcellona` resta identificativo interno. Restano "M3" in testi prodotti dal codice del modello (righe del registro, `*_metadata.json`): richiesta in `HANDOFF_MODEL.md` §8.
+- **Nome del modello**: allineato in AUTORI, note del manifest (senza "M3"/"Barcellona"), MODEL.md, note di rilascio, prima riga del registro (oggi «modello acustico di Sonar», vedi §16). `m3_barcellona` resta identificativo interno. Restano "M3" in testi prodotti dal codice del modello (righe del registro, `*_metadata.json`): richiesta in `HANDOFF_MODEL.md` §8.
 - **Controllo della consegna di Melfi** (`D:\noise_pollution\tests\test0\Sonar_Melfi_2026-11-14_1539`): GPKG con `layer_styles` e 2 layer (12.731 celle, 19.222 segmenti, EPSG:32633, 38 campi), File Geodatabase con 4 feature class, 4 `.lyrx`, PNG, 4 dati di input, LEGGIMI/LICENZA/AUTORI, `fonti_dati.json`: tutto presente e coerente. Correzioni: nome del modello; nota nel LEGGIMI su «Ripara origine dati» (i `.lyrx` hanno il percorso assoluto del .gdb).
 - **Decibel e salute** (richiesta dell'utente): i dB sono logaritmici, quindi le fasce si combinano in energia. Sonar ora calcola **Lden e Lnight indicativi** (Direttiva 2002/49/CE, `sonar_app/export/health.py`) dai sei campi orari dichiarati nel manifest (`indicators`, `map_fields[].hours`). Le mappe sono state **asciugate**: una sola tavola PNG per output (feriale/festivo × Lden/Lnight) al posto di 4 tavole da 6 riquadri; i livelli per fascia restano nei dati GIS. Stile predefinito di GPKG e `.lyrx`: Lden; stili aggiuntivi Lnight e LAeq 09–13.
 - **Scala delle mappe**: classi a passi regolari in dB adattate alla città (Melfi: Lden 56–68, Lnight 50–60, passi di 2 dB), una sola scala per indicatore su tutte le tavole. Le classi ancorate alle soglie OMS 2018 (53 dB Lden, 45 dB Lnight per il traffico stradale) sono pronte (`"scale": "who"`) ma **non attive**: con i valori attuali del modello anche la campagna di Melfi ha Lden ≈ 57,8 e Lnight ≈ 50,5 dB, quindi il 100% del territorio risulterebbe sopra soglia (indicazione non sostenibile). LEGGIMI e tavole dichiarano che i valori non vanno confrontati con le soglie OMS.
 - 21 test superati (nuovo `tests/test_health.py`: somma energetica, copertura delle 24 ore, passi regolari, scala OMS).
-- Installer ricostruito e installato (AAA_DIAG: BUILD 0, INSTALL 0, selftest OK); prova con Melfi nell'app installata: OK in 297 s, consegna `D:\noise_pollution\tests\test0\Sonar_Melfi_2026-11-14_1633` controllata (nome Pharos Noise, campi `lden_ind`/`lnight_ind`, 3 stili per layer, 2 PNG, GDB 4 layer). Correzione successiva: nomi degli stili QGIS non più troncati; installer finale ricostruito e riprovato con Melfi (OK in 323 s, `Sonar_Melfi_2026-11-14_1645`).
+- Installer ricostruito e installato (AAA_DIAG: BUILD 0, INSTALL 0, selftest OK); prova con Melfi nell'app installata: OK in 297 s, consegna `D:\noise_pollution\tests\test0\Sonar_Melfi_2026-11-14_1633` controllata (nome del modello, campi `lden_ind`/`lnight_ind`, 3 stili per layer, 2 PNG, GDB 4 layer). Correzione successiva: nomi degli stili QGIS non più troncati; installer finale ricostruito e riprovato con Melfi (OK in 323 s, `Sonar_Melfi_2026-11-14_1645`).
 - **Release `v1.0.0` pubblicata** (https://github.com/ivan-murano/sonar/releases/tag/v1.0.0) dal browser integrato: `Sonar-Setup-1.0.0.exe`, 140.414.237 byte, SHA-256 `f763a9cf7ef2521d82740fa56bcfd3d7abf6f493d66d93e05a5d06df1387d386`; tag sul commit di `main`. L'API della sessione rifiuta le release (403): titolo e note si compilano con il browser, ma il file va scelto dall'utente nella finestra «Apri» dell'app Claude (non comandabile con l'uso del computer).
 - `fix-lookup-thread` unito in `main` (fast-forward).
 
@@ -230,7 +230,7 @@ Prossimi passi:
 **Tavola A4** (`export/exposure_sheet.py`, rifatta con il processo della skill `schematic-figure`: brief, spec, disegno, lettura a freddo; brief e spec in `D:\noise_pollution\outputs\sonar\.diag\tavola_v2` non salvati: sono riassunti qui):
 - riquadri: residenti, Lden ≥ 65 dB, Lnight ≥ 55 dB (quota feriale grande, festivo sotto), classe Lden più frequente. Le soglie OMS non sono più in apertura (a Melfi davano 100% ovunque per il pavimento del modello); restano nel foglio xlsx;
 - tabelle: barra feriale piena e festivo chiara sotto, nessuna barra per gli zeri, riga «senza stima» solo se > 0, quote «< 0,1%» per valori piccoli non nulli, totale uguale al totale dei residenti;
-- riquadro «Un modello verificato sulle misure»: accuratezza su Barcellona (3,6 dB, 0,88) e uso (dove misurare, dove intervenire, quali scenari). Il testo con i numeri compare solo se il modello si chiama Pharos Noise; altrimenti una versione senza numeri;
+- riquadro «Un modello verificato sulle misure»: accuratezza su Barcellona (3,6 dB, 0,88) e uso (dove misurare, dove intervenire, quali scenari). Il testo con i numeri compare solo per il modello con id `m3_barcellona` (`VALIDATED_MODELS` in `exposure_sheet.py`); altrimenti una versione senza numeri;
 - titolo ridotto in automatico per i nomi lunghi.
 - Richiesta dell'utente: testi pubblici promozionali. Non scrivere che Sonar verifica limiti di legge o soglie OMS (il modello ha un pavimento rurale e la verifica di legge richiede metodi normativi): lo si è spiegato all'utente, che ha ricevuto la versione positiva qui sopra.
 
@@ -266,3 +266,18 @@ Prossimi passi:
 **Verifica**: 36 test superati nel contenitore (Linux, Python 3.13). Tavole di Stoccarda rigenerate dai GeoPackage della consegna 1.2.0 (`Sonar_Stoccarda_2026-11-15_1950`): limiti condivisi 50–70 dB a passi di 2,5 dB per entrambe le tavole; le mappe Lnight sono nettamente più chiare delle Lden, una sola legenda, nessun testo sovrapposto.
 
 **Per arrivare agli utenti**: ricostruire l'installer sul PC dell'utente con `build\output\AAA_DIAG.cmd` e pubblicare una nuova release (la fa l'utente su GitHub).
+
+## 16. Il modello senza nome pubblico proprio (15/11/2026, sera)
+
+**Richiesta dell'utente**: il nome interno del modello non deve comparire da nessuna parte (repository, tavole, file della consegna).
+
+**Cosa cambia**:
+- `name` del manifest: «modello acustico di Sonar» / «Sonar acoustic model»; nei testi semplicemente «il modello». L'identificativo interno `m3_barcellona` resta.
+- Consegna: il piè di pagina delle tavole PNG è «Sonar · © OpenStreetMap contributors · …» (senza nome del modello); LEGGIMI «Generato il … · Modello acustico di Sonar 1.0.0»; AUTORI «Modello acustico di Sonar 1.0.0: Ivan Murano, Laura Ripoli»; prima riga del registro «… · modello 1.0.0 (m3_barcellona)»; tavola e foglio della popolazione esposta «… · modello acustico di Sonar · …», firma della tavola «Sonar», riquadro «Il modello stima il livello sonoro…».
+- Il testo con i numeri di accuratezza della tavola della popolazione esposta si sceglie dall'id del modello (`VALIDATED_MODELS = {'m3_barcellona'}` in `export/exposure_sheet.py`, parametro `model_id` di `render`/`render_png`), non dal nome visibile.
+- Immagini `docs/img/modello.png`, `architettura.png`, `software.png`: le etichette con il nome sono state sostituite da «Modello acustico» (stesso carattere, Liberation Sans Bold, stesso colore e corpo; le immagini non hanno un sorgente nel repository).
+- Testi aggiornati: README, AUTHORS.txt, `docs/MODEL.md`, `docs/HANDOFF.md`, `docs/HANDOFF_MODEL.md`, `build/RELEASE_NOTES.md`, `requirements.txt`, commenti di adapter, `fastfeatures.py` e test.
+
+**Verifica**: nessuna occorrenza del nome nei file tracciati (anche binari) né nei nomi dei file; 37 test superati; `check_model` OK; tavola H3 di Stoccarda e tavola/foglio della popolazione esposta rigenerati e controllati.
+
+**Restano fuori dal repository**: la cronologia git (commit precedenti) e la release v1.2.0 pubblicata (testo delle note e `Sonar-Setup.exe`, che contiene il manifest precedente): da decidere con l'utente. Il nuovo installer va ricostruito con `build\output\AAA_DIAG.cmd` e pubblicato dall'utente.

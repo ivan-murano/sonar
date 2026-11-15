@@ -66,7 +66,7 @@ def run_job(spec: dict, emit, cancelled=lambda: False) -> Path:
     root = export.make_root(Path(spec['out_dir']), city.name)
     report.open_log(root / filename('log', language))
     emit({'event': 'folder', 'path': str(root)})
-    report.log(f'Sonar {__version__} · {city.name} ({city.country_code}, LAU {city.gisco_id}) · {pick(model.manifest["name"], language)} {model.version} ({model.id})')
+    report.log(f'Sonar {__version__} · {city.name} ({city.country_code}, LAU {city.gisco_id}) · {"modello" if language == "it" else "model"} {model.version} ({model.id})')
     inputs_root = root / folder('inputs', language)
     slug = export.safe_name(city.name)
     boundary = city.write_boundary(inputs_root / folder('boundary', language) / f'{slug}_{filename("boundary", language)}.gpkg')
@@ -113,7 +113,7 @@ def run_job(spec: dict, emit, cancelled=lambda: False) -> Path:
     ctx = ModelContext(city=city.to_json() | {'geometry': None}, boundary=boundary, inputs=inputs, work_dir=work, output_dir=work / 'outputs',
                        language=language, model_dir=model.folder, progress=lambda f, msg=None: report.phase('model', f, msg or ''),
                        log=report.log, cancelled=cancelled)
-    report.phase('model', 0.0, pick(model.manifest['name'], language))
+    report.phase('model', 0.0)
     result = model.run(ctx)
     # 4. esportazione
     written = export.export_results(model, result['outputs'], root, city, boundary, language,

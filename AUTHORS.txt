@@ -1,4 +1,4 @@
 Sonar
 Software: Ivan Murano, Laura Ripoli
-Modello acustico Pharos Noise / Acoustic model Pharos Noise: Ivan Murano, Laura Ripoli
+Modello acustico / Acoustic model: Ivan Murano, Laura Ripoli
 Repository: https://github.com/ivan-murano/sonar

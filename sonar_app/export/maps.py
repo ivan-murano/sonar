@@ -6,9 +6,9 @@ from pathlib import Path
 
 from ..i18n import pick
 
-FOOTER = {
-    'it': 'Sonar · {model} · © OpenStreetMap contributors · © Overture Maps · ESA WorldCover · confini © EuroGeographics',
-    'en': 'Sonar · {model} · © OpenStreetMap contributors · © Overture Maps · ESA WorldCover · boundaries © EuroGeographics',
+FOOTER = {   # il nome del modello non compare: il modello di Sonar non ha un nome pubblico proprio
+    'it': 'Sonar · © OpenStreetMap contributors · © Overture Maps · ESA WorldCover · confini © EuroGeographics',
+    'en': 'Sonar · © OpenStreetMap contributors · © Overture Maps · ESA WorldCover · boundaries © EuroGeographics',
 }
 MEDIAN = {'it': 'mediana {value:.1f} {unit}', 'en': 'median {value:.1f} {unit}'}
 NO_VALUES = {'it': 'nessuna stima', 'en': 'no estimate'}
@@ -89,7 +89,7 @@ def render(frame, boundary, fields: list[dict], style: dict, title: str, subtitl
     cax = fig.add_axes([0.3, 0.075, 0.4, 0.017])
     fig.colorbar(ScalarMappable(norm=norm, cmap=cmap), cax=cax, orientation='horizontal', extend='both', ticks=style['breaks'])
     cax.set_title(f'{pick(style.get("title"), language)} {unit}'.strip(), fontsize=10)
-    fig.text(0.5, 0.012, FOOTER[language].format(model=model_name), fontsize=7.5, color='#555555', ha='center')
+    fig.text(0.5, 0.012, FOOTER[language], fontsize=7.5, color='#555555', ha='center')
     fig.subplots_adjust(left=0.01, right=0.99, top=0.92, bottom=0.15, wspace=0.03, hspace=0.12)
     path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(path, dpi=dpi, facecolor='white')
@@ -187,7 +187,7 @@ def render_indicators(layers: list[tuple[str, object]], boundary, indicator_styl
     fig.suptitle(title, fontsize=15, fontweight='bold', y=0.995)
     note = NOTE[language].format(indicators=names, scale=SCALE_NOTE['city' if shared is not None else indicator_styles[0].get('scale', 'city')][language])
     fig.text(0.5, 0.03, textwrap.fill(note, width=95 * cols if cols > 1 else 120), fontsize=8, color='#444444', ha='center', va='bottom')
-    fig.text(0.5, 0.01, FOOTER[language].format(model=model_name), fontsize=7.5, color='#555555', ha='center')
+    fig.text(0.5, 0.01, FOOTER[language], fontsize=7.5, color='#555555', ha='center')
     fig.subplots_adjust(left=0.01, right=0.99, top=0.92, bottom=0.16, wspace=0.03, hspace=0.18)
     path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(path, dpi=dpi, facecolor='white')
