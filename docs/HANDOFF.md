@@ -202,3 +202,23 @@ Altro nella 1.1.0:
 - Windows: alla finestra senza cornice si aggiungono `WS_MINIMIZEBOX | WS_SYSMENU`, così il clic sull'icona nella barra delle applicazioni la riduce a icona.
 - L'installer si chiama sempre `Sonar-Setup.exe`: il link `releases/latest/download/Sonar-Setup.exe` nel README resta valido a ogni release.
 - Release `v1.1.0` pubblicata con `Sonar-Setup.exe` (SHA-256 `8f8bec5d53adc1f803db1975712645660afc5b7ace9e1358e667b4faff469e27`); release `v1.0.0` eliminata. Resta il solo ramo `main`; resta il tag `v1.0.0` (commit riscritto `7544998`), eliminabile dall'utente dalla pagina Tags.
+
+## 13. Stato al 15/11/2026, ore 05:15 (sessione chiusa per limite di utilizzo)
+
+Fatto e pubblicato su `main`:
+- README riscritto da zero per il GIS Day (cos'è, perché, uso, consegna, software, modello, accuratezza, fonti) con i tre schemi in `docs/img/`; `docs/MODEL.md` scritto (spiegazione del modello, variabili, accuratezza su Barcellona, bibliografia). Note di rilascio senza confronti con versioni precedenti.
+- Testi della consegna e della licenza senza le formule «sperimentale / non normativo» ripetute (maps.py, docs.py, manifest `notes`, LICENSE punto 5). Numeri di accuratezza usati ovunque: ensemble su 30 postazioni di Barcellona mai usate per l'addestramento, MAE orario 3,6 dB, correlazione 0,88, MAE per fascia 3,1 dB (fonte: `D:\noise_pollution\docs\handoff\validation.md`).
+- **Popolazione esposta** (commit eb293c3): nuovo fornitore `ghsl_population` (GHS-POP R2023A 2020, 100 m, tile in cache), input `population` nel manifest e chiave `"exposure": {"output": "h3", "input": "population"}`; `export/exposure.py` attribuisce i residenti alle celle H3 per area entro il confine, aggiunge il campo `residenti` ai layer H3 (GPKG e GDB) e scrive in `Risultati/Popolazione esposta/` un foglio `.xlsx` (Sintesi con formule, Celle H3, Note) e una tavola A4 `.png` (`export/exposure_sheet.py`). Classi della Direttiva 2002/49/CE all. VI (Lden 55–59…≥75, Lnight 50–54…≥70) e soglie OMS 2018 (53/45). Provato solo con popolazione sintetica nel contenitore (il JRC non è raggiungibile da lì).
+- Installer ricompilato e installato sul PC con questa funzione (non ancora pubblicato come release).
+
+In corso sul PC al momento della chiusura:
+- Prova reale di Melfi con GHSL: cartella `tests\test0\Sonar_Melfi_2026-11-15_0505` (stava scaricando l'estratto Sud Italia e la tile GHSL). Controllare: totale residenti ≈ 17.000 (Melfi ha circa 17.000 abitanti), tavola PNG e foglio xlsx in `Risultati\Popolazione esposta`, campo `residenti` nei GPKG.
+- Acquisizione dei sensori di Dublino: `D:\noise_pollution\ACQUISISCI_DUBLINO.cmd` avviato alle 04:41 (dati in `data\raw\aco_dub\20261115T034137Z_sonitus_full`, ~2.110 richieste, poi QA automatico in `data\processed\*_dublin_qa`).
+
+Prossimi passi:
+1. Verificare la prova di Melfi; poi Parigi.
+2. Tavola A4: rifinire l'impaginazione con la skill `schematic-figure` (l'utente l'ha installata nel suo account; progetto di lavoro `docs/brief.md` e `docs/spec.md` già impostati nel contenitore, da rifare) e riportare il disegno in `exposure_sheet.py` (matplotlib, perché Sonar la genera per ogni città).
+3. Validazione di Dublino (protocollo congelato, esecuzione unica): dopo il QA servono le previsioni orarie ai sensori (`python -m sonar points`, interfaccia in `D:\noise_pollution\docs\handoff\validation.md` §4), una prova di `scripts\evaluate_transfer_city.py` su dati sintetici e poi una sola esecuzione di `VALUTA_DUBLINO.cmd`. Riportare il risultato così com'è, buono o cattivo.
+4. Pavimento dei livelli: nelle aree rurali il modello non scende sotto ~49 dB di notte (Lden ~58): a Melfi tutti i residenti risultano sopra le soglie OMS. Decisione dell'utente: non correggere; presentare il modello come valido per le aree urbane sopra una certa dimensione. La soglia (abitanti o densità) va ricavata dai dati (es. quota di punti dentro l'intervallo delle variabili di Barcellona, già nei metadati del modello), non inventata.
+5. Nuova release con l'installer aggiornato (l'utente sceglie il file nella finestra «Apri»).
+6. Presentazione del GIS Day con l'utente e Laura (domani): slide dell'architettura già pronte (3 PNG in `docs/img/`), bibliografia in `D:\noise_pollution\docs\LITERATURE_REVIEW_2026-10-14.md`.
