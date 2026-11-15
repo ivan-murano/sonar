@@ -87,6 +87,12 @@ Spiegazione completa: [docs/MODEL.md](docs/MODEL.md).
 | [Eurostat GISCO LAU](https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/local-administrative-units) | confine comunale | © EuroGeographics, uso non commerciale |
 | [Nominatim](https://nominatim.openstreetmap.org) | ricerca della città | policy d'uso OSMF (una richiesta per ricerca) |
 
+## Privacy
+
+Sonar non ha account, non contiene telemetria e non invia nulla agli autori: Ivan Murano e Laura Ripoli non raccolgono né trattano dati personali di chi lo usa. Impostazioni, dati scaricati e risultati restano sul PC dell'utente. Per preparare una mappa Sonar si collega soltanto ai servizi pubblici elencati sopra (Nominatim riceve il nome della città cercata, GISCO le sue coordinate; Geofabrik, Overture, ESA e JRC i file richiesti): come per qualsiasi sito web, questi servizi vedono l'indirizzo IP del computer e lo trattano secondo le proprie informative. La popolazione residente viene da una griglia aggregata di 100 m (JRC GHS-POP) e non contiene dati su singole persone.
+
+*Sonar has no accounts or telemetry and sends nothing to its authors, who collect no personal data. Settings, downloads and results stay on the user's PC. Sonar only contacts the public data services listed above, which see the computer's IP address as any website does, under their own privacy policies. Population figures come from an aggregated 100 m grid (JRC GHS-POP) with no data on individuals.*
+
 ## Autori e licenza
 
 Ivan Murano e Laura Ripoli. Software e modello sono distribuiti secondo [LICENSE.txt](LICENSE.txt); le licenze delle librerie incluse sono in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
