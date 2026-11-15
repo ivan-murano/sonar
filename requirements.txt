@@ -1,4 +1,4 @@
-# Dipendenze di Sonar e del modello Pharos Noise (versioni verificate). Python 3.12.
+# Dipendenze di Sonar e del suo modello acustico (versioni verificate). Python 3.12.
 affine==3.0.1
 geopandas==1.2.0
 h3==4.5.0

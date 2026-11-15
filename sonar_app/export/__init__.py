@@ -350,7 +350,7 @@ def export_results(model, outputs: dict, root: Path, city, boundary_path: Path, 
             exp_dir.mkdir(parents=True, exist_ok=True)
             stem = f'{city_part}_{"popolazione_esposta" if language == "it" else "population_exposure"}'
             exposure.write_xlsx(exp_dir / f'{stem}.xlsx', exposure_result, city.name, model_name, language)
-            exposure.render_png(exp_dir / f'{stem}.png', exposure_result, city.name, model_name, language)
+            exposure.render_png(exp_dir / f'{stem}.png', exposure_result, city.name, model_name, language, model_id=model.id)
             written['exposure'] = [f'{stem}.xlsx', f'{stem}.png']
             written['residents_total'] = round(exposure_result['total'])
         except Exception as exc:

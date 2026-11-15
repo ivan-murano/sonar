@@ -25,7 +25,7 @@ def square_city():
 
 @pytest.fixture
 def model_output(tmp_path):
-    """GeoPackage come quello del modello Pharos Noise: layer feriale/festivo con i campi laeq_* (poligoni)."""
+    """GeoPackage come quello del modello acustico di Sonar: layer feriale/festivo con i campi laeq_* (poligoni)."""
     import geopandas as gpd
     import numpy as np
     from shapely.geometry import box

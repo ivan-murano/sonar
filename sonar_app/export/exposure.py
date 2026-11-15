@@ -18,7 +18,7 @@ FIELDS = {'lden': 'lden_ind', 'lnight': 'lnight_ind'}
 RES_FIELD = 'residenti'
 
 TXT = {
-    'it': {'title': '{city} — popolazione esposta al rumore', 'subtitle': 'Residenti per classe di Lden e Lnight · modello {model} · popolazione GHS-POP 2020',
+    'it': {'title': '{city} — popolazione esposta al rumore', 'subtitle': 'Residenti per classe di Lden e Lnight · {model} · popolazione GHS-POP 2020',
            'total': 'Residenti', 'who_lden': 'Lden ≥ 53 dB', 'who_lnight': 'Lnight ≥ 45 dB', 'who': 'soglie OMS 2018',
            'end_lden': 'Lden ≥ 55 dB', 'end_lnight': 'Lnight ≥ 50 dB', 'end': 'soglie di mappatura della Direttiva 2002/49/CE',
            'high_lden': 'Lden ≥ 65 dB', 'high_lnight': 'Lnight ≥ 55 dB', 'high': 'esposizione elevata',
@@ -32,16 +32,16 @@ TXT = {
            'reference': 'Riferimento', 'cell_id': 'Cella H3', 'city_label': 'Città', 'model_label': 'Modello', 'pop_label': 'Popolazione',
            'tile_modal': 'Lden più frequente', 'tile_caption': 'Quote sul totale dei residenti · classi della Direttiva 2002/49/CE, allegato VI',
            'read_title': 'Un modello verificato sulle misure',
-           'validity': ('Pharos Noise stima il livello sonoro ogni 100 m: su 30 postazioni di Barcellona mai usate per l’addestramento '
+           'validity': ('Il modello stima il livello sonoro ogni 100 m: su 30 postazioni di Barcellona mai usate per l’addestramento '
                         'l’errore medio è di 3,6 dB sulle singole ore, con una correlazione di 0,88 con le misure. Tavola, foglio di calcolo '
                         'e layer GIS mostrano quanti residenti vivono in ogni classe di esposizione e dove: la base per decidere dove misurare, '
                         'dove intervenire per primi e quali scenari confrontare.'),
-           'validity_generic': ('Livelli sonori stimati dal modello {model} su celle di circa 100 m. Tavola, foglio di calcolo e layer GIS mostrano '
+           'validity_generic': ('Livelli sonori stimati dal modello «{model}» su celle di circa 100 m. Tavola, foglio di calcolo e layer GIS mostrano '
                                 'quanti residenti vivono in ogni classe di esposizione e dove: la base per decidere dove misurare, dove intervenire '
                                 'per primi e quali scenari confrontare.'),
            'of_residents': 'dei residenti',
            'total_label': 'Residenti nel comune', 'unit': 'residenti'},
-    'en': {'title': '{city} — population exposed to noise', 'subtitle': 'Residents by Lden and Lnight class · {model} model · GHS-POP 2020 population',
+    'en': {'title': '{city} — population exposed to noise', 'subtitle': 'Residents by Lden and Lnight class · {model} · GHS-POP 2020 population',
            'total': 'Residents', 'who_lden': 'Lden ≥ 53 dB', 'who_lnight': 'Lnight ≥ 45 dB', 'who': 'WHO 2018 thresholds',
            'end_lden': 'Lden ≥ 55 dB', 'end_lnight': 'Lnight ≥ 50 dB', 'end': 'Directive 2002/49/EC mapping thresholds',
            'high_lden': 'Lden ≥ 65 dB', 'high_lnight': 'Lnight ≥ 55 dB', 'high': 'high exposure',
@@ -55,11 +55,11 @@ TXT = {
            'reference': 'Reference', 'cell_id': 'H3 cell', 'city_label': 'City', 'model_label': 'Model', 'pop_label': 'Population',
            'tile_modal': 'Most common Lden', 'tile_caption': 'Shares of all residents · classes of Directive 2002/49/EC, Annex VI',
            'read_title': 'A model checked against measurements',
-           'validity': ('Pharos Noise estimates the sound level every 100 m: at 30 Barcelona stations never used in training its mean error '
+           'validity': ('The model estimates the sound level every 100 m: at 30 Barcelona stations never used in training its mean error '
                         'is 3.6 dB on individual hours, with a correlation of 0.88 with the measurements. The sheet, the spreadsheet and the '
                         'GIS layers show how many residents live in each exposure class and where: the basis for deciding where to measure, '
                         'where to act first and which scenarios to compare.'),
-           'validity_generic': ('Sound levels estimated by the {model} model on cells of about 100 m. The sheet, the spreadsheet and the GIS layers '
+           'validity_generic': ('Sound levels estimated by the model “{model}” on cells of about 100 m. The sheet, the spreadsheet and the GIS layers '
                                 'show how many residents live in each exposure class and where: the basis for deciding where to measure, where '
                                 'to act first and which scenarios to compare.'),
            'of_residents': 'of residents',
@@ -249,6 +249,6 @@ def write_xlsx(path: Path, result: dict, city: str, model_name: str, language: s
 
 # ---------------------------------------------------------------- tavola A4
 
-def render_png(path: Path, result: dict, city: str, model_name: str, language: str) -> Path:
+def render_png(path: Path, result: dict, city: str, model_name: str, language: str, model_id: str | None = None) -> Path:
     from .exposure_sheet import render
-    return render(path, result, city, model_name, language)
+    return render(path, result, city, model_name, language, model_id=model_id)

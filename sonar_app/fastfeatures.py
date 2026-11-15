@@ -1,4 +1,4 @@
-"""Feature statiche del modello Pharos Noise calcolate più in fretta, con gli stessi risultati.
+"""Feature statiche del modello acustico calcolate più in fretta, con gli stessi risultati.
 
 Il modello (`src/prediction_features.py`, `src/sonar/prepare.py`) calcola per ogni ricevitore lunghezza delle
 strade, copertura degli edifici e conteggi dei POI entro 100/250/500 m, con buffer poligonali di 64 lati e

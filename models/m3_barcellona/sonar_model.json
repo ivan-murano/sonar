@@ -3,7 +3,7 @@
   "id": "m3_barcellona",
   "version": "1.0.0",
   "default": true,
-  "name": {"it": "Pharos Noise", "en": "Pharos Noise"},
+  "name": {"it": "modello acustico di Sonar", "en": "Sonar acoustic model"},
   "authors": ["Ivan Murano", "Laura Ripoli"],
   "documentation_url": "https://github.com/ivan-murano/sonar/blob/main/docs/MODEL.md",
   "entrypoint": "adapter:run",
@@ -71,8 +71,8 @@
     }
   },
   "notes": {
-    "it": "Stime del modello Pharos Noise, addestrato sulla rete di sensori acustici di Barcellona (errore medio orario 3,6 dB sulle postazioni non usate per l'addestramento). Ogni cella o segmento ha la stima del suo punto di calcolo all'aperto.",
-    "en": "Estimates from the Pharos Noise model, trained on the Barcelona acoustic sensor network (mean hourly error 3.6 dB at stations not used for training). Each cell or segment carries the estimate of its outdoor calculation point."
+    "it": "Stime del modello acustico di Sonar, addestrato sulla rete di sensori acustici di Barcellona (errore medio orario 3,6 dB sulle postazioni non usate per l'addestramento). Ogni cella o segmento ha la stima del suo punto di calcolo all'aperto.",
+    "en": "Estimates from the Sonar acoustic model, trained on the Barcelona acoustic sensor network (mean hourly error 3.6 dB at stations not used for training). Each cell or segment carries the estimate of its outdoor calculation point."
   },
   "output_license": {
     "it": "I risultati derivano da OpenStreetMap: sono opere derivate soggette a ODbL 1.0 (© OpenStreetMap contributors), con Overture Maps (CDLA Permissive 2.0) ed ESA WorldCover (CC BY 4.0).",
