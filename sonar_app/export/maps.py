@@ -7,8 +7,8 @@ from pathlib import Path
 from ..i18n import pick
 
 FOOTER = {
-    'it': 'Sonar · {model} · stima sperimentale · © OpenStreetMap contributors · © Overture Maps · ESA WorldCover · confini © EuroGeographics',
-    'en': 'Sonar · {model} · experimental estimate · © OpenStreetMap contributors · © Overture Maps · ESA WorldCover · boundaries © EuroGeographics',
+    'it': 'Sonar · {model} · © OpenStreetMap contributors · © Overture Maps · ESA WorldCover · confini © EuroGeographics',
+    'en': 'Sonar · {model} · © OpenStreetMap contributors · © Overture Maps · ESA WorldCover · boundaries © EuroGeographics',
 }
 MEDIAN = {'it': 'mediana {value:.1f} {unit}', 'en': 'median {value:.1f} {unit}'}
 NO_VALUES = {'it': 'nessuna stima', 'en': 'no estimate'}
@@ -99,14 +99,14 @@ def render(frame, boundary, fields: list[dict], style: dict, title: str, subtitl
 
 STAT = {'it': 'mediana {median} · 10% più esposto ≥ {p90} {unit}', 'en': 'median {median} · most exposed 10% ≥ {p90} {unit}'}
 NOTE = {
-    'it': ('{indicators} calcolati dalle fasce orarie con somma energetica (Direttiva 2002/49/CE: sera +5 dB, notte +10 dB). '
-           'Stime sperimentali, non indicatori normativi; {scale}.'),
-    'en': ('{indicators} computed from the time bands by energy summation (Directive 2002/49/EC: evening +5 dB, night +10 dB). '
-           'Experimental estimates, not regulatory indicators; {scale}.'),
+    'it': ('{indicators} calcolati dalle fasce orarie con somma energetica (Direttiva 2002/49/CE: sera +5 dB, notte +10 dB); '
+           '{scale}.'),
+    'en': ('{indicators} computed from the time bands by energy summation (Directive 2002/49/EC: evening +5 dB, night +10 dB); '
+           '{scale}.'),
 }
 SCALE_NOTE = {
-    'city': {'it': 'scala in dB adattata alla città, valori da non confrontare con le soglie OMS',
-             'en': 'dB scale adapted to the city, values not to be compared with WHO thresholds'},
+    'city': {'it': 'scala in dB adattata ai valori della città',
+             'en': 'dB scale adapted to the city values'},
     'who': {'it': 'classi ancorate alle soglie OMS 2018 per il traffico stradale (53 dB Lden, 45 dB Lnight)',
             'en': 'classes anchored to the WHO 2018 road traffic thresholds (53 dB Lden, 45 dB Lnight)'},
 }

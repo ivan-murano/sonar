@@ -123,14 +123,13 @@ INDICATORS_TEXT = {
     'it': ('\n\nLden e Lnight indicativi (campi lden_ind, lnight_ind) sono calcolati da Sonar sommando l\'energia sonora delle fasce '
            'orarie (i decibel sono logaritmici: +3 dB = energia doppia), con le penalità della Direttiva 2002/49/CE (sera +5 dB, '
            'notte +10 dB). Sono gli indicatori usati dagli studi sugli effetti del rumore sulla salute; le soglie dell\'OMS per il '
-           'traffico stradale sono 53 dB Lden e 45 dB Lnight (2018). Le mappe usano una scala in dB adattata alla città: '
-           'mostrano dove il rumore stimato è più alto, ma i valori non vanno confrontati con le soglie OMS finché il modello '
-           'non è verificato con misure locali.'),
+           'traffico stradale sono 53 dB Lden e 45 dB Lnight (2018). Le mappe usano una scala in dB adattata ai valori della città, per mostrare con chiarezza '
+           'dove il rumore è più alto.'),
     'en': ('\n\nIndicative Lden and Lnight (fields lden_ind, lnight_ind) are computed by Sonar by summing the sound energy of the time '
            'bands (decibels are logarithmic: +3 dB = twice the energy), with the penalties of Directive 2002/49/EC (evening +5 dB, '
            'night +10 dB). They are the indicators used by studies of noise health effects; the WHO road traffic thresholds are '
-           '53 dB Lden and 45 dB Lnight (2018). The maps use a dB scale adapted to the city: they show where estimated noise is '
-           'highest, but the values must not be compared with WHO thresholds until the model is verified with local measurements.'),
+           '53 dB Lden and 45 dB Lnight (2018). The maps use a dB scale adapted to the city values, to show clearly '
+           'where noise is highest.'),
 }
 
 
