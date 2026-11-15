@@ -201,4 +201,4 @@ Altro nella 1.1.0:
 - Barra di avanzamento: testi per passo nella lingua della UI (`PREPARE_STEPS`, `PREDICT_STEPS` nell'adattatore) con percentuale; le righe del modello vanno solo nel registro.
 - Windows: alla finestra senza cornice si aggiungono `WS_MINIMIZEBOX | WS_SYSMENU`, così il clic sull'icona nella barra delle applicazioni la riduce a icona.
 - L'installer si chiama sempre `Sonar-Setup.exe`: il link `releases/latest/download/Sonar-Setup.exe` nel README resta valido a ogni release.
-- Restano rami solo `main`; il tag `v1.0.0` punta a un commit riscritto (l'utente può eliminarlo dalla pagina Releases).
+- Release `v1.1.0` pubblicata con `Sonar-Setup.exe` (SHA-256 `8f8bec5d53adc1f803db1975712645660afc5b7ace9e1358e667b4faff469e27`); release `v1.0.0` eliminata. Resta il solo ramo `main`; resta il tag `v1.0.0` (commit riscritto `7544998`), eliminabile dall'utente dalla pagina Tags.
