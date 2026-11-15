@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 
 from PySide6.QtCore import QEasingCurve, QPointF, QPropertyAnimation, QRectF, Qt, QTimer, Property, Signal
-from PySide6.QtGui import QColor, QFont, QFontDatabase, QPainter, QPainterPath, QPen
+from PySide6.QtGui import QColor, QFont, QFontDatabase, QImage, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QAbstractButton, QLineEdit, QWidget
 
 from ..config import assets_dir
@@ -53,26 +53,31 @@ class Frame(Themed, QWidget):
 
 
 class Logo(Themed, QWidget):
-    """Logo provvisorio: 'Sonar' a contorno. Un file assets/logo.svg lo sostituisce."""
+    """Logotipo: assets/logo_light.png (tema chiaro) e assets/logo_dark.png (tema scuro); senza file, 'Sonar' a contorno."""
+    MARGIN = 10
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedHeight(92)
-        self.svg = None
-        path = assets_dir() / 'logo.svg'
-        if path.exists():
-            try:
-                from PySide6.QtSvg import QSvgRenderer
-                self.svg = QSvgRenderer(str(path))
-            except Exception:
-                self.svg = None
+        self.images = {}
+        for theme in ('light', 'dark'):
+            image = QImage(str(assets_dir() / f'logo_{theme}.png'))
+            if not image.isNull():
+                self.images[theme] = image
 
     def paintEvent(self, _):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        if self.svg is not None and self.svg.isValid():
-            size = self.svg.defaultSize().scaled(self.width(), self.height(), Qt.AspectRatioMode.KeepAspectRatio)
-            self.svg.render(p, QRectF((self.width() - size.width()) / 2, (self.height() - size.height()) / 2, size.width(), size.height()))
+        p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        image = self.images.get('dark' if self.colors is THEMES['dark'] else 'light')
+        if image is not None:
+            box = QRectF(self.rect()).adjusted(0, self.MARGIN, 0, -self.MARGIN)
+            size = image.size().toSizeF().scaled(box.size(), Qt.AspectRatioMode.KeepAspectRatio)
+            target = QRectF(box.center().x() - size.width() / 2, box.center().y() - size.height() / 2, size.width(), size.height())
+            ratio = self.devicePixelRatioF()       # riduzione di qualità alla risoluzione reale dello schermo
+            scaled = image.scaled(round(size.width() * ratio), round(size.height() * ratio), Qt.AspectRatioMode.IgnoreAspectRatio,
+                                  Qt.TransformationMode.SmoothTransformation)
+            p.drawImage(target, scaled)
             return
         path = QPainterPath()
         path.addText(0, 0, font(84, QFont.Weight.Bold, 13), 'Sonar')

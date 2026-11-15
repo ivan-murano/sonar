@@ -1,7 +1,7 @@
 ; Inno Setup 6: programma di installazione di Sonar (Sonar-Setup-<versione>.exe).
-; Compilato da build\BUILD_WINDOWS.cmd con: ISCC.exe /DAppVersion=1.0.0 build\installer.iss
+; Compilato da build\BUILD_WINDOWS.cmd con: ISCC.exe /DAppVersion=1.1.0 build\installer.iss
 #ifndef AppVersion
-  #define AppVersion "1.0.0"
+  #define AppVersion "1.1.0"
 #endif
 
 [Setup]
@@ -22,7 +22,7 @@ DisableReadyPage=yes
 CloseApplications=yes
 LicenseFile=..\LICENSE.txt
 OutputDir=output
-OutputBaseFilename=Sonar-Setup-{#AppVersion}
+OutputBaseFilename=Sonar-Setup
 ; lzma2/max: ultra64 con archivio solido da ~550 MB esaurisce la memoria del compilatore (processo a 32 bit)
 Compression=lzma2/max
 SolidCompression=yes
@@ -30,6 +30,7 @@ LZMAUseSeparateProcess=yes
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
+SetupIconFile=..\sonar_app\assets\sonar.ico
 UninstallDisplayIcon={app}\Sonar.exe
 UninstallDisplayName=Sonar
 

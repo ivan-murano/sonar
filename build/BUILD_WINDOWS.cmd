@@ -1,7 +1,7 @@
 @echo off
 rem ============================================================================
 rem  Sonar - creazione dell'installazione Windows (doppio clic)
-rem  Risultato: build\output\Sonar-Setup-<versione>.exe  e la cartella dist\Sonar
+rem  Risultato: build\output\Sonar-Setup.exe  e la cartella dist\Sonar
 rem  Serve: Python 3.12 e il codice del modello (cartella del progetto del modello).
 rem ============================================================================
 setlocal EnableExtensions
@@ -104,7 +104,7 @@ echo Inno Setup: %ISCC%
 "%ISCC%" /Q /DAppVersion=%VERSION% build\installer.iss
 if errorlevel 1 goto fail
 echo.
-echo Fatto: build\output\Sonar-Setup-%VERSION%.exe
+echo Fatto: build\output\Sonar-Setup.exe (versione %VERSION%)
 :done
 echo Versione portatile: dist\Sonar\Sonar.exe
 pause

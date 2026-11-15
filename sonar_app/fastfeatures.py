@@ -454,18 +454,13 @@ def _work(start, wkb):
 
 
 def compute_static_features(receivers, roads, buildings, osm_static, places_static, cfg, cache_dir, workers=None, chunk=1000, log=print):
-    """Stessa interfaccia e stessi file di `sonar.prepare.compute_static_features`, calcolo accelerato."""
+    """Stessa interfaccia e stessi file di `sonar.prepare.compute_static_features`, calcolo accelerato.
+
+    Il controllo del modello (100 ricevitori confrontati con la sua implementazione di riferimento) gira nel
+    processo principale mentre i processi di calcolo lavorano: se fallisce, il calcolo si ferma e nulla viene usato."""
+    import multiprocessing
     from sonar.legacy import reference_features_function
     cache_dir = Path(cache_dir)
-    context = FastSpatialFeatureContext(roads, buildings, osm_static, places_static)
-    sample_positions = np.linspace(0, len(receivers) - 1, min(100, len(receivers)), dtype=int)
-    sample = receivers.geometry.iloc[sample_positions].reset_index(drop=True)
-    reference = reference_features_function()(sample, roads, buildings, osm_static, places_static, cfg)
-    optimized = context.compute(sample)
-    if reference.columns.tolist() != optimized.columns.tolist() or not np.allclose(reference, optimized, rtol=1e-10, atol=1e-7):
-        raise AssertionError('Feature accelerate diverse dal riferimento Barcellona')
-    max_difference = float(np.max(np.abs(reference.to_numpy() - optimized.to_numpy())))
-    log(f'  feature ottimizzate verificate su {len(sample)} ricevitori, differenza massima {max_difference:.3g}')
     cache_dir.mkdir(exist_ok=True)
     chunks = {}
     for path in sorted(cache_dir.glob('*.parquet')):
@@ -480,12 +475,42 @@ def compute_static_features(receivers, roads, buildings, osm_static, places_stat
         log(f'  ripresi {sum(len(f) for f in chunks.values()):,} ricevitori già calcolati')
     pending = [s for s in range(0, len(receivers), chunk) if s not in chunks]
     data_path = cache_dir / '_contesto.pkl'
-    inputs = (roads, buildings, osm_static, places_static)
-    pd.to_pickle(inputs, data_path)
+    pd.to_pickle((roads, buildings, osm_static, places_static), data_path)
     workers = workers or default_workers(data_path.stat().st_size)
     workers = max(1, min(workers, len(pending) or 1))
     started = time.monotonic()
-    log(f'  calcolo accelerato su {workers} processi, {len(pending):,} blocchi da {chunk}')
+    geoms = receivers.geometry.to_numpy()
+    results = {}
+
+    def verify():
+        context = FastSpatialFeatureContext(roads, buildings, osm_static, places_static)
+        sample_positions = np.linspace(0, len(receivers) - 1, min(100, len(receivers)), dtype=int)
+        sample = receivers.geometry.iloc[sample_positions].reset_index(drop=True)
+        reference = reference_features_function()(sample, roads, buildings, osm_static, places_static, cfg)
+        optimized = context.compute(sample)
+        if reference.columns.tolist() != optimized.columns.tolist() or not np.allclose(reference, optimized, rtol=1e-10, atol=1e-7):
+            raise AssertionError('Feature diverse dal calcolo di riferimento del modello')
+        difference = float(np.max(np.abs(reference.to_numpy() - optimized.to_numpy())))
+        log(f'  controllo con il calcolo di riferimento del modello su {len(sample)} ricevitori: differenza massima {difference:.3g}')
+        return context, difference
+
+    pool = None
+    futures = []
+    if workers > 1 and pending:
+        try:
+            pool = ProcessPoolExecutor(max_workers=workers, mp_context=multiprocessing.get_context('spawn'),
+                                       initializer=_init_worker, initargs=(str(data_path),))
+            futures = [pool.submit(_work, s, shapely.to_wkb(geoms[s:s + chunk])) for s in pending]
+            log(f'  {workers} processi, {len(pending):,} blocchi da {chunk} ricevitori')
+        except Exception as exc:
+            log(f'  processi paralleli non disponibili ({type(exc).__name__}: {exc}); calcolo nel processo corrente')
+            pool, futures = None, []
+    try:
+        context, max_difference = verify()          # intanto i processi calcolano
+    except Exception:
+        if pool is not None:
+            pool.shutdown(wait=False, cancel_futures=True)
+        raise
 
     def store(start, frame):
         frame['unit_id'] = receivers.unit_id.iloc[start:start + chunk].to_numpy()
@@ -496,24 +521,19 @@ def compute_static_features(receivers, roads, buildings, osm_static, places_stat
         if len(chunks) % 10 == 0 or len(chunks) * chunk >= len(receivers):
             log(f'  feature statiche {sum(len(v) for v in chunks.values()):,} / {len(receivers):,}')
 
-    geoms = receivers.geometry.to_numpy()
-    try:
-        if workers > 1 and pending:
-            import multiprocessing
-            with ProcessPoolExecutor(max_workers=workers, mp_context=multiprocessing.get_context('spawn'),
-                                     initializer=_init_worker, initargs=(str(data_path),)) as pool:
-                futures = [pool.submit(_work, s, shapely.to_wkb(geoms[s:s + chunk])) for s in pending]
-                for future in as_completed(futures):
-                    store(*future.result())
-            pending = []
-    except Exception as exc:   # processi non disponibili: si prosegue nel processo corrente
-        log(f'  processi paralleli non disponibili ({type(exc).__name__}: {exc}); calcolo nel processo corrente')
-        pending = [s for s in range(0, len(receivers), chunk) if s not in chunks]
-    if pending:
+    if pool is not None:
+        try:
+            for future in as_completed(futures):
+                store(*future.result())
+        except Exception as exc:
+            log(f'  processi paralleli interrotti ({type(exc).__name__}: {exc}); completo nel processo corrente')
+        finally:
+            pool.shutdown(wait=True)
+    rest = [s for s in range(0, len(receivers), chunk) if s not in chunks]
+    if rest:
         import geopandas as gpd
-        with ThreadPoolExecutor(max_workers=2) as pool:
-            work = lambda s: (s, context.compute(gpd.GeoSeries(geoms[s:s + chunk])))
-            for start, frame in pool.map(work, pending):
+        with ThreadPoolExecutor(max_workers=2) as threads:
+            for start, frame in threads.map(lambda s: (s, context.compute(gpd.GeoSeries(geoms[s:s + chunk]))), rest):
                 store(start, frame)
     try:
         data_path.unlink()

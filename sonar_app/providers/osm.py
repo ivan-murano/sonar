@@ -87,8 +87,8 @@ def clip_pbf(source: Path, dest: Path, bounds, cancelled=lambda: False, report=l
 
     Regola: nodi con tag dentro il riquadro, way con almeno un vertice dentro, multipoligoni con un membro
     scelto, più i riferimenti all'indietro (BackReferenceWriter). Prima lettura: le coordinate delle way arrivano
-    dal C++ in WKB e il test dei vertici è vettoriale; seconda lettura filtrata per id in C++. File identico al
-    ritaglio oggetto per oggetto (`clip_pbf_simple`), che resta come riserva."""
+    dal C++ in WKB e il test dei vertici è vettoriale; riferimenti completati in C++ e seconda lettura filtrata per
+    id. File identico al ritaglio oggetto per oggetto (`clip_pbf_simple`), che resta come riserva."""
     try:
         return _clip_pbf_fast(source, dest, bounds, cancelled, report)
     except net.Cancelled:
@@ -136,49 +136,87 @@ def _clip_pbf_fast(source: Path, dest: Path, bounds, cancelled, report) -> dict:
     def inside(location) -> bool:
         return location.valid() and w <= location.lon <= e and s <= location.lat <= n
 
-    processor = osmium.FileProcessor(str(source)).with_locations(index).with_filter(osmium.filter.EmptyTagFilter())
-    for count, obj in enumerate(processor):
-        if count % 200_000 == 0:
-            if cancelled():
-                raise net.Cancelled()
-            report(min(0.6, count / max(1.0, size / 60) * 0.6))
-        if obj.is_node():
+    class FirstPass(osmium.SimpleHandler):
+        """Callback dal C++ (più leggeri degli oggetti di FileProcessor); stessa regola, stesso ordine."""
+        count = 0
+
+        def tick(self):
+            self.count += 1
+            if self.count % 200_000 == 0:
+                if cancelled():
+                    raise net.Cancelled()
+                report(min(0.6, self.count / max(1.0, size / 60) * 0.6))
+
+        def node(self, obj):
+            self.tick()
             if inside(obj.location):
                 nodes.add(obj.id)
-        elif obj.is_way():
+
+        def way(self, obj):
+            self.tick()
             try:
                 batch_wkb.append(wkb.create_linestring(obj, use_nodes=osmium.geom.use_nodes.ALL))
                 batch_ids.append(obj.id)
-            except Exception:            # posizioni mancanti o way degeneri: controllo nodo per nodo come prima
+            except Exception:            # posizioni mancanti o way degeneri: controllo nodo per nodo
                 if any(inside(node.location) for node in obj.nodes):
                     ways.add(obj.id)
             if len(batch_ids) >= 200_000:
                 flush()
-        elif obj.is_relation():
+
+        def relation(self, obj):
+            self.tick()
             flush()
             if obj.tags.get('type') == 'multipolygon' and any(
                     (m.type == 'w' and m.ref in ways) or (m.type == 'n' and m.ref in nodes) for m in obj.members):
                 relations.add(obj.id)
+                tracker.add_references(obj)          # membri, come BackReferenceWriter.add_relation
+
+    tracker = osmium.IdTracker()
+    locations = osmium.NodeLocationsForWays(osmium.index.create_map(index))
+    locations.ignore_errors()
+    with osmium.io.Reader(str(source)) as reader:
+        osmium.apply(reader, locations, osmium.filter.EmptyTagFilter(), FirstPass())
     flush()
-    # seconda lettura: solo gli oggetti scelti arrivano a Python (filtro per id in C++), stesso ordine del file
+    if cancelled():
+        raise net.Cancelled()
+    report(0.6)
+    # seconda lettura, come BackReferenceWriter (riferimenti completati in C++, tag tolti agli oggetti solo
+    # referenziati) ma in un solo passaggio filtrato per id: file identico, senza file temporaneo né zip in Python
+    for ident in ways:          # i loro nodi entrano con il completamento, come i riferimenti di add_way
+        tracker.add_way(ident)
+    tracker.complete_backward_references(str(source), relation_depth=0)
+    for ident in nodes:         # dopo il completamento: si aggiungono all'uscita senza seguirne i riferimenti
+        tracker.add_node(ident)
+    for ident in relations:
+        tracker.add_relation(ident)
+    report(0.75)
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_name(dest.name + '.part.pbf')
     if tmp.exists():
         tmp.unlink()
-    wanted = nodes | ways | relations
-    with osmium.BackReferenceWriter(str(tmp), ref_src=str(source), overwrite=True) as writer:
-        processor = osmium.FileProcessor(str(source)).with_filter(osmium.filter.EmptyTagFilter()).with_filter(osmium.filter.IdFilter(wanted))
-        for obj in processor:
-            if obj.is_node():
-                if obj.id in nodes:
-                    writer.add_node(obj)
-            elif obj.is_way():
-                if obj.id in ways:
-                    writer.add_way(obj)
-            elif obj.id in relations:
-                writer.add_relation(obj)
+    from osmium._osmium import SimpleWriter
+
+    class Copy(osmium.SimpleHandler):
+        def __init__(self, writer):
+            super().__init__()
+            self.add_node, self.add_way, self.add_relation = writer.add_node, writer.add_way, writer.add_relation
+
+        def node(self, obj):
+            self.add_node(obj if obj.id in nodes or not len(obj.tags) else obj.replace(tags={}))
+
+        def way(self, obj):
+            self.add_way(obj if obj.id in ways or not len(obj.tags) else obj.replace(tags={}))
+
+        def relation(self, obj):
+            self.add_relation(obj if obj.id in relations or not len(obj.tags) else obj.replace(tags={}))
+
+    with SimpleWriter(str(tmp), overwrite=True) as writer:
+        with osmium.io.Reader(str(source)) as reader:
+            osmium.apply(reader, tracker.id_filter(), Copy(writer))
     tmp.replace(dest)
     return {'tagged_nodes': len(nodes), 'ways': len(ways), 'multipolygons': len(relations)}
+
+
 
 
 def fetch(spec: dict, city, dest_dir: Path, job: Job) -> dict:
