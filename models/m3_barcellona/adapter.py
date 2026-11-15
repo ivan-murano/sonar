@@ -29,7 +29,7 @@ def code_root(model_dir: Path) -> Path:
     raise FileNotFoundError('Codice del modello Pharos Noise non trovato: impostare SONAR_MODEL_CODE oppure includere la cartella code/')
 
 
-def _accelerate_static_features():
+def _accelerate_static_features(code_paths=None):
     """Feature statiche con il calcolo accelerato di Sonar (stessi risultati, verificati dal modello a ogni esecuzione).
 
     Si sostituisce solo la funzione chiamata da `sonar.prepare.run_prepare`; il codice del modello non cambia.
@@ -40,6 +40,12 @@ def _accelerate_static_features():
     from sonar_app.fastfeatures import compute_static_features
 
     def accelerated(receivers, roads, buildings, osm_static, places_static, cfg, cache_dir, workers=None, chunk=1000, log=print):
+        if code_paths:   # passo 5 e matrici delle attività in anticipo, mentre le feature occupano gli altri core
+            try:
+                from sonar_app import speculative
+                speculative.start(Path(cache_dir).parent, code_paths, receivers.crs.to_epsg())
+            except Exception as exc:
+                log(f'  calcolo anticipato non avviato ({type(exc).__name__}: {exc})')
         return compute_static_features(receivers, roads, buildings, osm_static, places_static, cfg, cache_dir, None, chunk, log)
 
     model_prepare.compute_static_features = accelerated
@@ -53,11 +59,12 @@ def _parallelize_model(code_paths, log):
     if os.environ.get('SONAR_PARALLEL', '1') == '0':
         return
     import functools
+    import sonar.places as model_places
     import sonar.predict as model_predict
     import sonar.receivers as model_receivers
     import sonar.supports as model_supports
     from sonar.legacy import activity, engine
-    from sonar_app import parallel
+    from sonar_app import parallel, speculative
     city_prediction = engine()
     hours = activity()
     # profile_for: funzione pura (categoria -> profilo), chiamata una volta per attività: si memorizzano i risultati
@@ -68,8 +75,10 @@ def _parallelize_model(code_paths, log):
          lambda f: parallel.parallel_road_segments(f, 'sonar.supports', 'road_segments', code_paths, log)),
         (model_receivers, 'select_receivers', ['units', 'buildings', 'boundary_metric', 'worldcover_path', 'crs', 'log', 'parts_dir', 'chunk'],
          lambda f: parallel.parallel_receivers(f, 'sonar.receivers', 'select_receivers', code_paths)),
+        (model_places, 'activity_programs', ['places_in', 'osm_in', 'profiles', 'crs'],
+         lambda f: speculative.wrap_programs(f, log)),
         (model_predict, 'program_matrices', ['points', 'places', 'programs', 'chunk'],
-         lambda f: parallel.parallel_program_matrices(f, 'sonar.legacy', 'spatial_program_counts', code_paths, log)),
+         lambda f: speculative.wrap_matrices(parallel.parallel_program_matrices(f, 'sonar.legacy', 'spatial_program_counts', code_paths, log), log)),
         (city_prediction, 'predict_scenarios', ['spatial', 'matrices', 'programs', 'models', 'calendar', 'scenarios', 'chunk_size', 'progress'],
          lambda f: parallel.parallel_predict(f, city_prediction.__name__, 'predict_scenarios', code_paths)),
     ]
@@ -96,8 +105,9 @@ def run(ctx):
     from sonar.predict import run_predict
     from sonar.prepare import run_prepare
     from sonar.runs import city_slug
-    _accelerate_static_features()
-    _parallelize_model([str(code / 'scripts'), str(code / 'src')], ctx.log)
+    code_paths = [str(code / 'scripts'), str(code / 'src')]
+    _accelerate_static_features(code_paths)
+    _parallelize_model(code_paths, ctx.log)
 
     city = ctx.city
     slug = city_slug(city.get('lau_name') or city['name'])

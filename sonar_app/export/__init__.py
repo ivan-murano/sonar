@@ -4,6 +4,8 @@ from __future__ import annotations
 import json
 import re
 import shutil
+import threading
+from concurrent.futures import ThreadPoolExecutor
 import sqlite3
 from datetime import datetime
 from pathlib import Path
@@ -114,72 +116,112 @@ def export_results(model, outputs: dict, root: Path, city, boundary_path: Path, 
     if cfg:
         base = model.style(manifest_outputs[0]['style']) if manifest_outputs else {}
         indicator_styles = health.styles_for([f for _, _, f in loaded], cfg, base, language)
-    # 2. scrittura
-    gdb_ok = True
+    # 2. scrittura: GeoPackage, File Geodatabase e tavole PNG sono file indipendenti e procedono insieme
+    lock = threading.Lock()
+    state = {'done': done, 'gdb_ok': True}
+
+    def step(message):
+        with lock:
+            report(state['done'] / steps, message)
+
+    def advance():
+        with lock:
+            state['done'] += 1
+
+    plans = []
     for output in manifest_outputs:
         style = model.style(output['style'])
         source = Path(outputs[output['id']])
         stem = f'{city_part}_{pick(output["file_stem"], language)}'
-        target = gpkg_dir / f'{stem}.gpkg'
         aliases = field_aliases(output, style, language, indicator_styles)
         for sidecar in source.parent.glob(f'{source.stem}*.json'):
             shutil.copy2(sidecar, gpkg_dir / f'{stem}{sidecar.name[len(source.stem):]}')
-        sheet = []
+        layers = []
         for out, layer, frame in loaded:
             if out is not output:
                 continue
-            kind = _geometry_kind(frame)
             name = pick(layer.get('export_name') or layer['name'], language)
             layer_title = pick(layer.get('title'), language)
-            title = f'{pick(output.get("title"), language)} · {layer_title}'
-            # GeoPackage con stili QGIS: il primo è il predefinito
-            report(done / steps, t('ex_gpkg', language, name=f'{target.name} / {name}'))
-            frame.to_file(target, layer=name, driver='GPKG', engine='pyogrio')
-            laeq_field = output['style_field']
-            laeq_label = f'{aliases.get(laeq_field, laeq_field)}'
-            entries = [(pick(item['title'], language), styles.qml(item, item['field'], kind, title, aliases),
-                        styles.sld(item, item['field'], kind, name, title), f'{title} · {item["label"]}')
-                       for item in indicator_styles.values()]
-            entries.append((laeq_label[:30] if entries else name, styles.qml(style, laeq_field, kind, title, aliases),
-                            styles.sld(style, laeq_field, kind, name, title), f'{title} · {laeq_label}' if entries else title))
-            add_gpkg_styles(target, name, entries)
-            done += 1
-            # File Geodatabase + layer file ArcGIS Pro (sull'indicatore principale, se presente)
-            report(done / steps, t('ex_gdb', language))
-            feature_class = gdb_name(f'{output["id"]}_{name}')
-            if gdb_ok:
-                try:
-                    frame.to_file(gdb_path, layer=feature_class, driver='OpenFileGDB', engine='pyogrio')
-                    lyrx_path = lyrx_dir / f'{stem}_{name}.lyrx'
-                    main = next(iter(indicator_styles.values()), None)
-                    lyrx_style, lyrx_field = (main, main['field']) if main else (style, laeq_field)
-                    lyrx_path.write_text(styles.lyrx(lyrx_style, lyrx_field, kind, f'{title} · {main["label"]}' if main else title, str(gdb_path), feature_class,
-                                                     aliases.get(lyrx_field, lyrx_field), NO_DATA[language]), encoding='utf-8')
-                    written['gdb'].append(feature_class); written['lyrx'].append(lyrx_path.name)
-                except Exception as exc:  # GDAL senza scrittura FileGDB: la consegna resta valida con GPKG e PNG
-                    gdb_ok = False
-                    written['warnings'].append(f'File Geodatabase: {exc}')
-                    log(f'File Geodatabase non creato: {exc}')
-            done += 1
+            layers.append({'frame': frame, 'kind': _geometry_kind(frame), 'name': name, 'layer_title': layer_title,
+                           'title': f'{pick(output.get("title"), language)} · {layer_title}'})
+        plans.append({'output': output, 'style': style, 'stem': stem, 'aliases': aliases, 'target': gpkg_dir / f'{stem}.gpkg', 'layers': layers})
+
+    def write_gpkg():
+        names = []
+        for plan in plans:
+            output, style, aliases, target = plan['output'], plan['style'], plan['aliases'], plan['target']
+            for item in plan['layers']:
+                frame, kind, name, title = item['frame'], item['kind'], item['name'], item['title']
+                step(t('ex_gpkg', language, name=f'{target.name} / {name}'))
+                frame.to_file(target, layer=name, driver='GPKG', engine='pyogrio')
+                laeq_field = output['style_field']
+                laeq_label = f'{aliases.get(laeq_field, laeq_field)}'
+                entries = [(pick(st['title'], language), styles.qml(st, st['field'], kind, title, aliases),
+                            styles.sld(st, st['field'], kind, name, title), f'{title} · {st["label"]}')
+                           for st in indicator_styles.values()]
+                entries.append((laeq_label[:30] if entries else name, styles.qml(style, laeq_field, kind, title, aliases),
+                                styles.sld(style, laeq_field, kind, name, title), f'{title} · {laeq_label}' if entries else title))
+                add_gpkg_styles(target, name, entries)
+                advance()
+            names.append(target.name)
+        return names
+
+    def write_gdb():
+        gdb, lyrx = [], []
+        for plan in plans:
+            output, style, aliases, stem = plan['output'], plan['style'], plan['aliases'], plan['stem']
+            for item in plan['layers']:
+                frame, kind, name, title = item['frame'], item['kind'], item['name'], item['title']
+                step(t('ex_gdb', language))
+                feature_class = gdb_name(f'{output["id"]}_{name}')
+                if state['gdb_ok']:
+                    try:
+                        frame.to_file(gdb_path, layer=feature_class, driver='OpenFileGDB', engine='pyogrio')
+                        lyrx_path = lyrx_dir / f'{stem}_{name}.lyrx'
+                        main = next(iter(indicator_styles.values()), None)
+                        laeq_field = output['style_field']
+                        lyrx_style, lyrx_field = (main, main['field']) if main else (style, laeq_field)
+                        lyrx_path.write_text(styles.lyrx(lyrx_style, lyrx_field, kind, f'{title} · {main["label"]}' if main else title, str(gdb_path),
+                                                         feature_class, aliases.get(lyrx_field, lyrx_field), NO_DATA[language]), encoding='utf-8')
+                        gdb.append(feature_class); lyrx.append(lyrx_path.name)
+                    except Exception as exc:  # GDAL senza scrittura FileGDB: la consegna resta valida con GPKG e PNG
+                        state['gdb_ok'] = False
+                        with lock:
+                            written['warnings'].append(f'File Geodatabase: {exc}')
+                            log(f'File Geodatabase non creato: {exc}')
+                advance()
+        return gdb, lyrx
+
+    def write_png():
+        pngs = []
+        for plan in plans:
+            output, style, stem = plan['output'], plan['style'], plan['stem']
             if cfg:
-                sheet.append((layer_title, frame))
+                sheet = [(item['layer_title'], item['frame']) for item in plan['layers']]
+                if sheet:
+                    suffix = '_'.join(health.INDICATORS[i]['field'].split('_')[0].capitalize() for i in cfg['items'])
+                    png = maps_dir / f'{stem}_{suffix}.png'
+                    step(t('ex_png', language, name=png.name))
+                    maps.render_indicators(sheet, boundary, list(indicator_styles.values()), f'{city.name} — {pick(output.get("title"), language)}',
+                                           png, language, model_name)
+                    pngs.append(png.name)
+                    advance()
                 continue
-            # PNG per layer (modelli senza indicatori): un riquadro per fascia
-            png = maps_dir / f'{stem}_{name}.png'
-            report(done / steps, t('ex_png', language, name=png.name))
-            maps.render(frame, boundary, output['map_fields'], style, f'{city.name} — {title}',
-                        f'{pick(style.get("title"), language)} · {style.get("unit", "")} · {model_name}', png, language, model_name)
-            written['png'].append(png.name)
-            done += 1
-        if cfg and sheet:
-            suffix = '_'.join(health.INDICATORS[i]['field'].split('_')[0].capitalize() for i in cfg['items'])
-            png = maps_dir / f'{stem}_{suffix}.png'
-            report(done / steps, t('ex_png', language, name=png.name))
-            maps.render_indicators(sheet, boundary, list(indicator_styles.values()), f'{city.name} — {pick(output.get("title"), language)}',
-                                   png, language, model_name)
-            written['png'].append(png.name)
-            done += 1
-        written['gpkg'].append(target.name)
+            for item in plan['layers']:     # PNG per layer (modelli senza indicatori): un riquadro per fascia
+                png = maps_dir / f'{stem}_{item["name"]}.png'
+                step(t('ex_png', language, name=png.name))
+                maps.render(item['frame'], boundary, output['map_fields'], style, f'{city.name} — {item["title"]}',
+                            f'{pick(style.get("title"), language)} · {style.get("unit", "")} · {model_name}', png, language, model_name)
+                pngs.append(png.name)
+                advance()
+        return pngs
+
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        f_gpkg, f_gdb, f_png = pool.submit(write_gpkg), pool.submit(write_gdb), pool.submit(write_png)
+        written['gpkg'] = f_gpkg.result()
+        written['gdb'], written['lyrx'] = f_gdb.result()
+        written['png'] = f_png.result()
+    gdb_ok = state['gdb_ok']
     if indicator_styles:
         written['indicators'] = {k: {'field': v['field'], 'scale': v['scale'], 'breaks': v['breaks']} for k, v in indicator_styles.items()}
     if not gdb_ok and gdb_path.exists():

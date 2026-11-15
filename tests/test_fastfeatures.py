@@ -85,3 +85,23 @@ def test_default_workers_respects_override(monkeypatch):
     assert fastfeatures.default_workers() == 3
     monkeypatch.delenv('SONAR_FEATURE_WORKERS')
     assert 1 <= fastfeatures.default_workers() <= 8
+
+
+def test_numpy_path_matches_compiled_path(monkeypatch):
+    roads, buildings, osm, places, points = synthetic_city(4, n_points=150)
+    expected = SpatialFeatureContext(roads, buildings, osm, places).compute(points)
+    monkeypatch.setenv('SONAR_NUMBA', '0')
+    numpy_path = fastfeatures.FastSpatialFeatureContext(roads, buildings, osm, places)
+    assert numpy_path.kernels is None
+    np.testing.assert_allclose(numpy_path.compute(points).to_numpy(float), expected.to_numpy(float), rtol=1e-10, atol=1e-7)
+
+
+def test_speculative_keys_are_deterministic():
+    from sonar_app import speculative
+    roads, buildings, osm, places, points = synthetic_city(5, n_points=60)
+    places = places.assign(unit_id=[f'p{i}' for i in range(len(places))])
+    osm = osm.assign(unit_id=[f'o{i}' for i in range(len(osm))])
+    a = speculative.programs_key(places.copy(), osm.copy(), {'x': [1, 2]}, 32633)
+    b = speculative.programs_key(places.copy(deep=True), osm.copy(deep=True), {'x': [1, 2]}, 32633)
+    c = speculative.programs_key(places.iloc[1:], osm, {'x': [1, 2]}, 32633)
+    assert a == b and a != c
