@@ -30,6 +30,16 @@ TXT = {
            'sources': 'Fonti: OpenStreetMap, Overture Maps, ESA WorldCover, JRC GHSL (Schiavina et al. 2023), confini © EuroGeographics',
            'sheet_summary': 'Sintesi', 'sheet_cells': 'Celle H3', 'sheet_notes': 'Note', 'indicator': 'Indicatore', 'threshold': 'Soglia',
            'reference': 'Riferimento', 'cell_id': 'Cella H3', 'city_label': 'Città', 'model_label': 'Modello', 'pop_label': 'Popolazione',
+           'tile_modal': 'Lden più frequente', 'tile_caption': 'Quote sul totale dei residenti · classi della Direttiva 2002/49/CE, allegato VI',
+           'read_title': 'Un modello verificato sulle misure',
+           'validity': ('Pharos Noise stima il livello sonoro ogni 100 m: su 30 postazioni di Barcellona mai usate per l’addestramento '
+                        'l’errore medio è di 3,6 dB sulle singole ore, con una correlazione di 0,88 con le misure. Tavola, foglio di calcolo '
+                        'e layer GIS mostrano quanti residenti vivono in ogni classe di esposizione e dove: la base per decidere dove misurare, '
+                        'dove intervenire per primi e quali scenari confrontare.'),
+           'validity_generic': ('Livelli sonori stimati dal modello {model} su celle di circa 100 m. Tavola, foglio di calcolo e layer GIS mostrano '
+                                'quanti residenti vivono in ogni classe di esposizione e dove: la base per decidere dove misurare, dove intervenire '
+                                'per primi e quali scenari confrontare.'),
+           'of_residents': 'dei residenti',
            'total_label': 'Residenti nel comune', 'unit': 'residenti'},
     'en': {'title': '{city} — population exposed to noise', 'subtitle': 'Residents by Lden and Lnight class · {model} model · GHS-POP 2020 population',
            'total': 'Residents', 'who_lden': 'Lden ≥ 53 dB', 'who_lnight': 'Lnight ≥ 45 dB', 'who': 'WHO 2018 thresholds',
@@ -43,6 +53,16 @@ TXT = {
            'sources': 'Sources: OpenStreetMap, Overture Maps, ESA WorldCover, JRC GHSL (Schiavina et al. 2023), boundaries © EuroGeographics',
            'sheet_summary': 'Summary', 'sheet_cells': 'H3 cells', 'sheet_notes': 'Notes', 'indicator': 'Indicator', 'threshold': 'Threshold',
            'reference': 'Reference', 'cell_id': 'H3 cell', 'city_label': 'City', 'model_label': 'Model', 'pop_label': 'Population',
+           'tile_modal': 'Most common Lden', 'tile_caption': 'Shares of all residents · classes of Directive 2002/49/EC, Annex VI',
+           'read_title': 'A model checked against measurements',
+           'validity': ('Pharos Noise estimates the sound level every 100 m: at 30 Barcelona stations never used in training its mean error '
+                        'is 3.6 dB on individual hours, with a correlation of 0.88 with the measurements. The sheet, the spreadsheet and the '
+                        'GIS layers show how many residents live in each exposure class and where: the basis for deciding where to measure, '
+                        'where to act first and which scenarios to compare.'),
+           'validity_generic': ('Sound levels estimated by the {model} model on cells of about 100 m. The sheet, the spreadsheet and the GIS layers '
+                                'show how many residents live in each exposure class and where: the basis for deciding where to measure, where '
+                                'to act first and which scenarios to compare.'),
+           'of_residents': 'of residents',
            'total_label': 'Residents in the municipality', 'unit': 'residents'},
 }
 
@@ -95,14 +115,15 @@ def compute(days, raster_path: Path, boundary) -> dict:
     first = days[0][2]
     residents = residents_per_cell(first, raster_path, boundary)
     by_id = pd.Series(residents, index=first['unit_id'].astype(str).to_numpy()) if 'unit_id' in first else None
-    out = {'total': float(residents.sum()), 'days': [], 'residents': residents, 'residents_by_day': []}
+    unit_ids = first['unit_id'].astype(str).to_numpy() if 'unit_id' in first else np.arange(len(first)).astype(str)
+    out = {'total': float(residents.sum()), 'days': [], 'residents': residents, 'residents_by_day': [], 'unit_ids': unit_ids}
     for title, short, frame in days:
         if by_id is not None and 'unit_id' in frame:
             res = by_id.reindex(frame['unit_id'].astype(str).to_numpy()).fillna(0.0).to_numpy()
             aligned = frame.set_index(frame['unit_id'].astype(str)).reindex(by_id.index)
         else:
             res, aligned = residents, frame
-        out['residents_by_day'].append(np.round(res, 1))
+        out['residents_by_day'].append(np.round(res, 3))   # 0,1 per cella perdeva ~10 residenti a Melfi
         day = {'title': title, 'short': short, 'frame': aligned}
         for key, edges in (('lden', LDEN_EDGES), ('lnight', LNIGHT_EDGES)):
             day[key] = class_rows(frame[FIELDS[key]].to_numpy(), res, edges)
@@ -126,7 +147,9 @@ def _fmt(n, language):
 
 
 def _pct(n, total, language):
-    s = f'{100 * n / total:.1f}%' if total else '–'
+    if not total:
+        return '–'
+    s = '< 0.1%' if 0 < 100 * n / total < 0.05 else f'{100 * n / total:.1f}%'
     return s.replace('.', ',') if language == 'it' else s
 
 
@@ -199,11 +222,12 @@ def write_xlsx(path: Path, result: dict, city: str, model_name: str, language: s
     wc = wb.create_sheet(T['sheet_cells'])
     names = [T['cell_id'], T['residents']] + sum([[f'Lden · {d["short"]}', f'Lnight · {d["short"]}'] for d in days], [])
     header(wc, 1, names)
-    frame0 = days[0]['frame']
-    unit_ids = frame0.index.astype(str).to_numpy() if frame0.index.dtype == object else np.arange(len(result['residents'])).astype(str)
+    unit_ids = result.get('unit_ids')
+    if unit_ids is None:
+        unit_ids = np.arange(len(result['residents'])).astype(str)
     columns = [days[i]['frame'][FIELDS[k]].to_numpy(dtype=float) for i in range(len(days)) for k in ('lden', 'lnight')]
     for i, uid in enumerate(unit_ids):
-        values = [uid, round(float(result['residents'][i]), 1)] + [None if math.isnan(col[i]) else round(float(col[i]), 1) for col in columns]
+        values = [uid, round(float(result['residents'][i]), 2)] + [None if math.isnan(col[i]) else round(float(col[i]), 1) for col in columns]
         wc.append(values)
     for c in range(1, len(names) + 1):
         wc.column_dimensions[get_column_letter(c)].width = 20 if c == 1 else 16

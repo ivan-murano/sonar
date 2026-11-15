@@ -1,7 +1,7 @@
 ; Inno Setup 6: programma di installazione di Sonar (Sonar-Setup-<versione>.exe).
-; Compilato da build\BUILD_WINDOWS.cmd con: ISCC.exe /DAppVersion=1.1.0 build\installer.iss
+; Compilato da build\BUILD_WINDOWS.cmd con: ISCC.exe /DAppVersion=1.2.0 build\installer.iss
 #ifndef AppVersion
-  #define AppVersion "1.1.0"
+  #define AppVersion "1.2.0"
 #endif
 
 [Setup]
