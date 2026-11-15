@@ -169,6 +169,8 @@ def parallel_predict(original, module_name, attribute, code_paths, threads_per_w
     def predict_scenarios(spatial, matrices, programs, models, calendar, scenarios, chunk_size=2000, progress=None):
         n = len(spatial)
         workers = min(max(1, default_workers() * 2 // threads_per_worker), max(1, n // (chunk_size * 4)))
+        if (os.cpu_count() or 1) < 6:      # con pochi core la previsione originale (già multithread) è più rapida
+            workers = 1
         if workers <= 1:
             return original(spatial, matrices, programs, models, calendar, scenarios, chunk_size=chunk_size, progress=progress)
         span = chunk_size * max(1, -(-n // (chunk_size * workers * 3)))

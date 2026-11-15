@@ -57,6 +57,8 @@ class _Lines:
         self.s = pc[:-1][same]; self.e = pc[1:][same]; seg_geom = pidx[pid[:-1][same]]
         order = np.argsort(seg_geom, kind='stable'); self.s, self.e, seg_geom = self.s[order], self.e[order], seg_geom[order]
         self.count = np.bincount(seg_geom, minlength=len(geoms)); self.start = np.cumsum(self.count) - self.count
+        self.sx, self.sy = np.ascontiguousarray(self.s[:, 0]), np.ascontiguousarray(self.s[:, 1])
+        self.ex, self.ey = np.ascontiguousarray(self.e[:, 0]), np.ascontiguousarray(self.e[:, 1])
 
     def clip_length(self, g, A, D, valid):
         """Lunghezza dentro l'intersezione dei semipiani (A punto, D direzione; interno a sinistra) per ogni coppia."""
@@ -92,6 +94,8 @@ class _Rings:
         self.ring_order = order
         self.rcount = np.bincount(rgeom, minlength=len(geoms)); self.rstart = np.cumsum(self.rcount) - self.rcount
         self.ring_area = shapely.area(shapely.polygons(rings))
+        self.vx, self.vy = np.ascontiguousarray(self.xy[:, 0]), np.ascontiguousarray(self.xy[:, 1])
+        self.n = self.n.astype(np.int64); self.start = self.start.astype(np.int64)
 
     def clip_area(self, g, A, D, valid, center):
         """Area di ogni geometria dentro l'intersezione dei semipiani. Anelli interamente dentro: area intera;
@@ -172,6 +176,8 @@ class FastSpatialFeatureContext:
         self.buildings = buildings.geometry.to_numpy(); self.buildtree = shapely.STRtree(self.buildings); self.areas = shapely.area(self.buildings)
         self.road_bounds = shapely.bounds(self.roads); self.build_bounds = shapely.bounds(self.buildings)
         self.lines = _Lines(self.roads); self.rings = _Rings(self.buildings)
+        from . import fastkernels
+        self.kernels = fastkernels if fastkernels.available() and os.environ.get('SONAR_NUMBA', '1') != '0' else None
         motor = ['motorway','trunk','primary','secondary','tertiary','residential','unclassified','living_street','service']
         roadkind = roads.highway.str.replace('_link','',regex=False)
         self.major = roadkind.isin(motor[:5]).to_numpy(); self.motor = roadkind.isin(motor).to_numpy()
@@ -270,6 +276,30 @@ class FastSpatialFeatureContext:
         return out
 
     def _measure(self, kind, xy, buffers, ring, radius, pairs, inscribed, all_rest=False):
+        if self.kernels is not None and len(pairs[0]):
+            out = self._measure_compiled(kind, xy, ring, radius, pairs, inscribed)
+            bad = np.flatnonzero(~np.isfinite(out))
+            if bad.size == 0:
+                return out
+            out[bad] = self._measure_numpy(kind, xy, buffers, ring, radius, pairs[:, bad], inscribed)
+            return out
+        return self._measure_numpy(kind, xy, buffers, ring, radius, pairs, inscribed)
+
+    def _measure_compiled(self, kind, xy, ring, radius, pairs, inscribed):
+        k = self.kernels
+        p = np.ascontiguousarray(pairs[0], dtype=np.int64); g = np.ascontiguousarray(pairs[1], dtype=np.int64)
+        cx, cy = np.ascontiguousarray(xy[:, 0]), np.ascontiguousarray(xy[:, 1])
+        out = np.empty(len(p))
+        r_in2 = (radius * inscribed - 1e-6) ** 2
+        if kind == 'road':
+            L = self.lines
+            k.road_lengths(p, g, cx, cy, ring, r_in2, radius + 1e-6, L.start, L.count, L.sx, L.sy, L.ex, L.ey, out)
+        else:
+            R = self.rings
+            k.ring_areas(p, g, cx, cy, ring, r_in2, R.rstart, R.rcount, R.ring_order, R.start, R.n, R.vx, R.vy, R.sign, R.ring_area, out)
+        return out
+
+    def _measure_numpy(self, kind, xy, buffers, ring, radius, pairs, inscribed):
         if kind == 'road':
             return self._road_lengths(xy, ring, radius, pairs, inscribed)
         bounds, values = (self.road_bounds, self.lengths) if kind == 'road' else (self.build_bounds, self.areas)
