@@ -21,6 +21,37 @@ def _colormap(style):
     return cmap, BoundaryNorm(style['breaks'], cmap.N)
 
 
+def draw_lines(ax, frame, column, cmap, norm, linewidth, no_data_color):
+    """Linee colorate per classe: un solo tracciato per colore invece di un oggetto per segmento.
+
+    Stesso colore e spessore di GeoDataFrame.plot; le classi sono disegnate dalla più bassa alla più alta,
+    così i tratti più rumorosi restano sopra. Molto più veloce con centinaia di migliaia di segmenti."""
+    import numpy as np
+    import shapely
+    from matplotlib.colors import to_hex
+    from matplotlib.patches import PathPatch
+    from matplotlib.path import Path as MPath
+    parts, owner = shapely.get_parts(frame.geometry.to_numpy(), return_index=True)
+    coords, part_of = shapely.get_coordinates(parts, return_index=True)
+    if not len(coords):
+        return
+    values = frame[column].to_numpy(dtype=float)[owner]
+    finite = np.isfinite(values)
+    # classe di colore: indice di BoundaryNorm (sotto = -1, sopra = N), -2 per i valori mancanti
+    level = np.full(len(parts), -2, dtype=np.int64)
+    if finite.any():
+        level[finite] = np.asarray(norm(values[finite]), dtype=np.int64)
+    first = np.r_[True, part_of[1:] != part_of[:-1]]
+    codes_all = np.where(first, MPath.MOVETO, MPath.LINETO).astype(np.uint8)
+    vertex_level = level[part_of]
+    for value in np.unique(level):                      # dalla classe più bassa alla più alta
+        color = to_hex(no_data_color) if value == -2 else to_hex(cmap(int(value)), keep_alpha=False)
+        keep = vertex_level == value
+        path = MPath(coords[keep], codes_all[keep])
+        ax.add_artist(PathPatch(path, fill=False, edgecolor=color, linewidth=linewidth, rasterized=True, capstyle='butt', joinstyle='round'))  # senza ricalcolo dei limiti
+    ax.update_datalim([coords.min(0), coords.max(0)])
+
+
 def render(frame, boundary, fields: list[dict], style: dict, title: str, subtitle: str, path: Path, language: str, model_name: str, dpi=200):
     """frame: GeoDataFrame del layer; boundary: GeoDataFrame del confine; fields: [{'field', 'title'}]."""
     import matplotlib
@@ -41,8 +72,11 @@ def render(frame, boundary, fields: list[dict], style: dict, title: str, subtitl
     unit = style.get('unit', '')
     for ax, spec in zip(axes.ravel(), fields):
         column = spec['field']
-        kwargs = dict(column=column, ax=ax, cmap=cmap, norm=norm, rasterized=True, missing_kwds={'color': style.get('no_data_color', '#d5d9dc')})
-        frame.plot(linewidth=0.35 if lines else 0, **kwargs)
+        if lines:
+            draw_lines(ax, frame, column, cmap, norm, 0.35, style.get('no_data_color', '#d5d9dc'))
+        else:
+            frame.plot(column=column, ax=ax, cmap=cmap, norm=norm, rasterized=True, linewidth=0,
+                       missing_kwds={'color': style.get('no_data_color', '#d5d9dc')})
         boundary.boundary.plot(ax=ax, color='#222222', linewidth=0.6)
         ax.set_xlim(xmin, xmax); ax.set_ylim(ymin, ymax); ax.set_aspect('equal'); ax.set_axis_off()
         values = frame[column].dropna()
@@ -107,8 +141,11 @@ def render_indicators(layers: list[tuple[str, object]], boundary, indicator_styl
         for r, (layer_title, frame) in enumerate(layers):
             ax = axes[r][c]
             column = style['field']
-            frame.plot(column=column, ax=ax, cmap=cmap, norm=norm, rasterized=True, linewidth=0.4 if lines else 0,
-                       missing_kwds={'color': style.get('no_data_color', '#d5d9dc')})
+            if lines:
+                draw_lines(ax, frame, column, cmap, norm, 0.4, style.get('no_data_color', '#d5d9dc'))
+            else:
+                frame.plot(column=column, ax=ax, cmap=cmap, norm=norm, rasterized=True, linewidth=0,
+                           missing_kwds={'color': style.get('no_data_color', '#d5d9dc')})
             boundary.boundary.plot(ax=ax, color='#222222', linewidth=0.6)
             ax.set_xlim(xmin, xmax); ax.set_ylim(ymin, ymax); ax.set_aspect('equal'); ax.set_axis_off()
             weights = frame.geometry.length if lines else frame.geometry.area

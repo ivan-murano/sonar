@@ -8,8 +8,10 @@ Gira nel processo worker (sonar_app.worker) e comunica con l'interfaccia tramite
 from __future__ import annotations
 
 import shutil
+import threading
 import time
 import traceback
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from . import __version__, export, providers
@@ -75,16 +77,34 @@ def run_job(spec: dict, emit, cancelled=lambda: False) -> Path:
                                         'license': 'non-commercial use, source acknowledgement', 'attribution': 'EuroGeographics',
                                         'path': str(boundary.relative_to(root))}}
     items = model.manifest['inputs']
-    for i, item in enumerate(items):
-        if cancelled():
-            raise SystemExit(3)
+    # i download sono indipendenti: si scaricano insieme (il più lungo, OSM con il ritaglio, non aspetta gli altri)
+    progress = [0.0] * len(items)
+    lock = threading.Lock()
+
+    def fetch(i, item):
         provider = item['provider']
-        job = providers.Job(language=language, cache=cache_dir(), log=report.log, cancelled=cancelled,
-                            report=lambda f, msg, i=i: report.phase('download', (i + f) / len(items), msg))
-        result = fetchers[provider]({**item, '_slug': slug}, city, inputs_root / providers.FOLDER_NAMES[provider], job)
+
+        def advance(f, msg, i=i):
+            with lock:
+                progress[i] = f
+                report.phase('download', sum(progress) / len(items), msg)
+        def log(text):
+            with lock:
+                report.log(text)
+        job = providers.Job(language=language, cache=cache_dir(), log=log, cancelled=cancelled, report=advance)
+        return fetchers[provider]({**item, '_slug': slug}, city, inputs_root / providers.FOLDER_NAMES[provider], job)
+
+    if cancelled():
+        raise SystemExit(3)
+    with ThreadPoolExecutor(max_workers=max(1, len(items))) as pool:
+        futures = [pool.submit(fetch, i, item) for i, item in enumerate(items)]
+        results = [future.result() for future in futures]       # stesso ordine del manifest; un errore si propaga
+    if cancelled():
+        raise SystemExit(3)
+    for item, result in zip(items, results):
         inputs[item['id']] = Path(result['path'])
         sources[item['id']] = {**result['source'], 'path': str(Path(result['path']).relative_to(root))}
-        report.log(f'{provider}: {Path(result["path"]).name}')
+        report.log(f'{item["provider"]}: {Path(result["path"]).name}')
     # 3. modello
     work = runs_dir() / root.name
     if work.exists():
