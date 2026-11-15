@@ -18,9 +18,8 @@ ITALIANO
    dati di origine: OpenStreetMap (ODbL 1.0, i risultati sono opere derivate), Overture Maps
    (CDLA Permissive 2.0), ESA WorldCover (CC BY 4.0) e confini Eurostat GISCO/EuroGeographics, usabili
    solo per scopi non commerciali. L'uso commerciale dei confini richiede una licenza EuroGeographics.
-5. Nessuna garanzia. Sonar è fornito "così com'è". Le stime del modello sono sperimentali e non
-   sostituiscono misure o mappe acustiche previste dalla normativa. Nei limiti di legge gli autori non
-   rispondono di danni derivanti dall'uso di Sonar o dei risultati.
+5. Garanzia. Sonar è fornito "così com'è", senza garanzie espresse o implicite. Nei limiti di legge gli
+   autori non rispondono di danni derivanti dall'uso di Sonar o dei risultati.
 6. Legge applicabile: legge italiana.
 
 ENGLISH
@@ -40,7 +39,6 @@ ENGLISH
    OpenStreetMap (ODbL 1.0, results are derivative works), Overture Maps (CDLA Permissive 2.0),
    ESA WorldCover (CC BY 4.0) and Eurostat GISCO/EuroGeographics boundaries, usable for non-commercial
    purposes only. Commercial use of the boundaries requires a EuroGeographics licence.
-5. No warranty. Sonar is provided "as is". Model estimates are experimental and do not replace
-   measurements or statutory noise maps. To the extent permitted by law the authors are not liable for
-   damages arising from the use of Sonar or of its results.
+5. Warranty. Sonar is provided "as is", without express or implied warranties. To the extent permitted by
+   law the authors are not liable for damages arising from the use of Sonar or of its results.
 6. Governing law: Italian law.
