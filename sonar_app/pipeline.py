@@ -117,7 +117,7 @@ def run_job(spec: dict, emit, cancelled=lambda: False) -> Path:
     result = model.run(ctx)
     # 4. esportazione
     written = export.export_results(model, result['outputs'], root, city, boundary, language,
-                                    lambda f, msg: report.phase('export', 0.9 * f, msg), report.log)
+                                    lambda f, msg: report.phase('export', 0.9 * f, msg), report.log, inputs=inputs)
     report.phase('export', 0.95, t('ex_docs', language))
     export.write_sources(root, language, sources, city, model, {'model_metadata': result.get('metadata'), 'written': written,
                                                                 'software_version': __version__})

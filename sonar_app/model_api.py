@@ -22,7 +22,7 @@ from typing import Callable
 from .config import models_dir
 
 CONTRACT = 'sonar-model/1'
-KNOWN_PROVIDERS = ('osm_pbf', 'overture_places', 'esa_worldcover')
+KNOWN_PROVIDERS = ('osm_pbf', 'overture_places', 'esa_worldcover', 'ghsl_population')
 
 
 class ModelError(Exception):

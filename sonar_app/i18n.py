@@ -50,6 +50,9 @@ STRINGS = {
     'dl_osm_clip': {'it': 'OpenStreetMap: ritaglio l’area della città', 'en': 'OpenStreetMap: clipping the city area'},
     'dl_places': {'it': 'Overture Places: attività nel riquadro ({rows} righe)', 'en': 'Overture Places: activities in the area ({rows} rows)'},
     'dl_worldcover': {'it': 'ESA WorldCover: copertura del suolo', 'en': 'ESA WorldCover: land cover'},
+    'dl_population': {'it': 'GHSL: popolazione residente', 'en': 'GHSL: resident population'},
+    'dl_population_bytes': {'it': 'GHSL: popolazione residente ({done} / {total})', 'en': 'GHSL: resident population ({done} / {total})'},
+    'ex_exposure': {'it': 'Popolazione esposta: tabelle e foglio di calcolo', 'en': 'Population exposure: tables and spreadsheet'},
     'ex_gpkg': {'it': 'GeoPackage con stile: {name}', 'en': 'Styled GeoPackage: {name}'},
     'ex_gdb': {'it': 'File Geodatabase ESRI', 'en': 'ESRI File Geodatabase'},
     'ex_png': {'it': 'Mappa PNG: {name}', 'en': 'PNG map: {name}'},
@@ -65,6 +68,7 @@ FOLDERS = {
     'inputs': {'it': 'Dati di input', 'en': 'Input data'},
     'boundary': {'it': 'Confine', 'en': 'Boundary'},
     'arcgis_styles': {'it': 'Stili ArcGIS', 'en': 'ArcGIS styles'},
+    'exposure': {'it': 'Popolazione esposta', 'en': 'Population exposure'},
 }
 FILES = {
     'readme': {'it': 'LEGGIMI.txt', 'en': 'README.txt'},
