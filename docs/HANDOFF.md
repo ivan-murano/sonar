@@ -243,7 +243,7 @@ Prossimi passi:
 
 **Release 1.2.0**: versione portata a 1.2.0 (`__init__`, `version_info.txt`, `installer.iss`), note in `build/RELEASE_NOTES.md` (popolazione esposta, accuratezza, senza «sperimentali»). Installer ricostruito con `build\output\AAA_DIAG` (BUILD 0, INSTALL 0, selftest OK, 31 test): `Sonar-Setup.exe`, 174.163.163 byte, SHA-256 `98b14492181366024bc9fb91ea027e27074a114762087fa49035a250555416ec`.
 
-**Release pubblicata**: https://github.com/ivan-murano/sonar/releases/tag/v1.2.0 («Latest», tag creato da GitHub su `main`; il push dei tag dalla sessione è bloccato dal proxy). Richiesta dell'utente: per chi la scarica è la prima versione di Sonar, quindi note senza «novità» o confronti con versioni precedenti. Resta visibile la release v1.1.0: eliminarla solo se l'utente lo chiede.
+**Release pubblicata**: https://github.com/ivan-murano/sonar/releases/tag/v1.2.0 («Latest», tag creato da GitHub su `main`; il push dei tag dalla sessione è bloccato dal proxy). Richiesta dell'utente: per chi la scarica è la prima versione di Sonar, quindi note senza «novità» o confronti con versioni precedenti. Su richiesta dell'utente la release v1.1.0 e i tag `v1.0.0` e `v1.1.0` sono stati eliminati: su GitHub restano solo la release e il tag `v1.2.0`.
 
 **README del modello riscritto** (`D:\noise_pollution\README.md`; il precedente in `docs/README_storico_2026-10-14.md`): cosa stima, dati, variabili, addestramento, verifiche (Barcellona, Dublino, Melfi), limiti, regole, mappa dei file. Prossima fase dell'utente: riaddestrare il modello per migliorare l'accuratezza.
 
