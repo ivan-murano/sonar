@@ -16,8 +16,10 @@
   "inputs": [
     {"id": "osm", "provider": "osm_pbf", "buffer_m": 1500, "clip_margin_m": 1000},
     {"id": "places", "provider": "overture_places", "type": "place", "buffer_m": 1500},
-    {"id": "landcover", "provider": "esa_worldcover", "buffer_m": 1500}
+    {"id": "landcover", "provider": "esa_worldcover", "buffer_m": 1500},
+    {"id": "population", "provider": "ghsl_population", "buffer_m": 200}
   ],
+  "exposure": {"output": "h3", "input": "population"},
   "outputs": [
     {
       "id": "h3",

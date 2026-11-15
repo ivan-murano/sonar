@@ -44,8 +44,9 @@ def registry() -> dict:
     sostituiscono i download (prove senza rete, sviluppo del modello)."""
     import json
     import os
-    from . import osm, overture, worldcover
-    fetchers = {'osm_pbf': osm.fetch, 'overture_places': overture.fetch, 'esa_worldcover': worldcover.fetch}
+    from . import osm, overture, population, worldcover
+    fetchers = {'osm_pbf': osm.fetch, 'overture_places': overture.fetch, 'esa_worldcover': worldcover.fetch,
+                'ghsl_population': population.fetch}
     if os.environ.get('SONAR_LOCAL_INPUTS'):
         mapping = json.loads(Path(os.environ['SONAR_LOCAL_INPUTS']).read_text(encoding='utf-8'))
         for provider, path in mapping.items():
@@ -66,4 +67,4 @@ def _local_fetcher(provider: str, source: Path):
 
 
 # Nome della sottocartella in "Dati di input" per ciascun fornitore (uguale nelle due lingue).
-FOLDER_NAMES = {'osm_pbf': 'OpenStreetMap', 'overture_places': 'Overture Places', 'esa_worldcover': 'ESA WorldCover'}
+FOLDER_NAMES = {'osm_pbf': 'OpenStreetMap', 'overture_places': 'Overture Places', 'esa_worldcover': 'ESA WorldCover', 'ghsl_population': 'GHSL'}

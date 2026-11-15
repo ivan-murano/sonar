@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 from ..i18n import filename, folder, pick, t
-from . import health, maps, styles
+from . import exposure, health, maps, styles
 
 GPKG_STYLE_TABLE = """CREATE TABLE IF NOT EXISTS layer_styles (
     id INTEGER PRIMARY KEY AUTOINCREMENT, f_table_catalog TEXT(256), f_table_schema TEXT(256), f_table_name TEXT(256),
@@ -83,11 +83,13 @@ def field_aliases(output: dict, style: dict, language: str, indicator_styles: di
 PROCESS_EXPORT_ROWS = 150_000      # oltre questa dimensione File Geodatabase e PNG vanno in processi separati
 
 
-def _read_layer(source, layer_name, map_fields, items):
+def _read_layer(source, layer_name, map_fields, items, extra=None):
     import geopandas as gpd
     frame = gpd.read_file(source, layer=layer_name, engine='pyogrio')
     if items:
         health.add_to_frame(frame, map_fields, items)
+    for column, values in (extra or {}).items():     # colonne calcolate da Sonar (residenti), nello stesso ordine delle righe
+        frame[column] = values
     return frame
 
 
@@ -95,7 +97,7 @@ def _side_gdb(jobs, gdb_path):
     gdb, lyrx, warnings = [], [], []
     for job in jobs:
         try:
-            frame = _read_layer(job['source'], job['layer'], job['map_fields'], job['items'])
+            frame = _read_layer(job['source'], job['layer'], job['map_fields'], job['items'], job.get('extra'))
             frame.to_file(gdb_path, layer=job['feature_class'], driver='OpenFileGDB', engine='pyogrio')
             Path(job['lyrx_path']).write_text(job['lyrx_text'], encoding='utf-8')
             gdb.append(job['feature_class']); lyrx.append(Path(job['lyrx_path']).name)
@@ -119,7 +121,8 @@ def _side_png(jobs, boundary, language, model_name):
     return names
 
 
-def _start_side_processes(plans, outputs, cfg, indicator_styles, gdb_path, lyrx_dir, maps_dir, boundary, city, language, model_name, no_data, log):
+def _start_side_processes(plans, outputs, cfg, indicator_styles, gdb_path, lyrx_dir, maps_dir, boundary, city, language, model_name, no_data, log,
+                          extra_columns=None):
     """File Geodatabase e tavole PNG in due processi, mentre il processo principale scrive i GeoPackage."""
     import multiprocessing
     from concurrent.futures import ProcessPoolExecutor
@@ -137,6 +140,7 @@ def _start_side_processes(plans, outputs, cfg, indicator_styles, gdb_path, lyrx_
             text = styles.lyrx(lyrx_style, lyrx_field, item['kind'], f'{item["title"]} · {main["label"]}' if main else item['title'], str(gdb_path),
                                feature_class, aliases.get(lyrx_field, lyrx_field), no_data)
             gdb_jobs.append({'source': source, 'layer': layer_name, 'map_fields': output['map_fields'], 'items': items,
+                             'extra': (extra_columns or {}).get((output['id'], layer_name)),
                              'feature_class': feature_class, 'lyrx_path': str(lyrx_path), 'lyrx_text': text})
         if cfg:
             suffix = '_'.join(health.INDICATORS[i]['field'].split('_')[0].capitalize() for i in cfg['items'])
@@ -159,7 +163,7 @@ def _start_side_processes(plans, outputs, cfg, indicator_styles, gdb_path, lyrx_
         return None
 
 
-def export_results(model, outputs: dict, root: Path, city, boundary_path: Path, language: str, report, log) -> dict:
+def export_results(model, outputs: dict, root: Path, city, boundary_path: Path, language: str, report, log, inputs: dict | None = None) -> dict:
     """outputs: {output_id: GPKG del modello}. report(fraction, message).
 
     Se il manifest attiva "indicators", ai layer si aggiungono Lden/Lnight indicativi: diventano lo stile predefinito
@@ -195,6 +199,27 @@ def export_results(model, outputs: dict, root: Path, city, boundary_path: Path, 
     if cfg:
         base = model.style(manifest_outputs[0]['style']) if manifest_outputs else {}
         indicator_styles = health.styles_for([f for _, _, f in loaded], cfg, base, language)
+    # residenti per cella (popolazione esposta): colonna nei layer e tabelle della consegna
+    exposure_result, extra_columns = None, {}
+    ecfg = model.manifest.get('exposure')
+    population = Path(inputs[ecfg['input']]) if ecfg and cfg and inputs and inputs.get(ecfg['input']) else None
+    if population is not None and population.exists():
+        try:
+            days = [(pick(layer.get('title'), language), pick(layer.get('export_name') or layer['name'], language), frame)
+                    for out, layer, frame in loaded if out['id'] == ecfg['output']]
+            if days:
+                exposure_result = exposure.compute(days, population, boundary)
+                values = exposure_result['residents_by_day']
+                k = 0
+                for out, layer, frame in loaded:
+                    if out['id'] == ecfg['output']:
+                        frame[exposure.RES_FIELD] = values[k]
+                        extra_columns[(out['id'], layer['name'])] = {exposure.RES_FIELD: values[k]}
+                        k += 1
+        except Exception as exc:
+            message = f'Popolazione esposta non calcolata: {type(exc).__name__}: {exc}'
+            written['warnings'].append(message); log(message)
+            exposure_result = None
     # 2. scrittura: GeoPackage, File Geodatabase e tavole PNG sono file indipendenti e procedono insieme
     lock = threading.Lock()
     state = {'done': done, 'gdb_ok': True}
@@ -299,7 +324,7 @@ def export_results(model, outputs: dict, root: Path, city, boundary_path: Path, 
     side = None
     if total_rows >= PROCESS_EXPORT_ROWS:
         side = _start_side_processes(plans, outputs, cfg, indicator_styles, gdb_path, lyrx_dir, maps_dir, boundary, city, language,
-                                     model_name, NO_DATA[language], log)
+                                     model_name, NO_DATA[language], log, extra_columns)
     if side is None:
         with ThreadPoolExecutor(max_workers=3) as pool:
             f_gpkg, f_gdb, f_png = pool.submit(write_gpkg), pool.submit(write_gdb), pool.submit(write_png)
@@ -318,6 +343,19 @@ def export_results(model, outputs: dict, root: Path, city, boundary_path: Path, 
         finally:
             side['pool'].shutdown(wait=True)
     gdb_ok = state['gdb_ok']
+    if exposure_result is not None:
+        step(t('ex_exposure', language))
+        try:
+            exp_dir = results / folder('exposure', language)
+            exp_dir.mkdir(parents=True, exist_ok=True)
+            stem = f'{city_part}_{"popolazione_esposta" if language == "it" else "population_exposure"}'
+            exposure.write_xlsx(exp_dir / f'{stem}.xlsx', exposure_result, city.name, model_name, language)
+            exposure.render_png(exp_dir / f'{stem}.png', exposure_result, city.name, model_name, language)
+            written['exposure'] = [f'{stem}.xlsx', f'{stem}.png']
+            written['residents_total'] = round(exposure_result['total'])
+        except Exception as exc:
+            message = f'Tabelle della popolazione esposta non scritte: {type(exc).__name__}: {exc}'
+            written['warnings'].append(message); log(message)
     if indicator_styles:
         written['indicators'] = {k: {'field': v['field'], 'scale': v['scale'], 'breaks': v['breaks']} for k, v in indicator_styles.items()}
     if not gdb_ok and gdb_path.exists():

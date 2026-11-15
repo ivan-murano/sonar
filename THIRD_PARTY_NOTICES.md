@@ -14,6 +14,7 @@ Sonar include i componenti seguenti, ciascuno con la propria licenza. L'installa
 | pyarrow, h3, requests | Apache 2.0 | |
 | pyosmium | BSD 2-Clause; libosmium Boost Software License 1.0 | |
 | matplotlib | Matplotlib License (PSF-based) | |
+| openpyxl | MIT | |
 | numba, llvmlite | BSD 2-Clause; LLVM: Apache 2.0 con eccezione LLVM | compilazione dei calcoli geometrici |
 | Quicksand (font) | SIL Open Font License 1.1 | `sonar_app/assets/fonts/OFL.txt` |
 | PyInstaller (bootloader) | GPL v2 con eccezione per i programmi creati | consente la distribuzione dell'eseguibile |
