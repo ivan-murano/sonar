@@ -1,6 +1,6 @@
 # Passaggio di consegne — sviluppo del software Sonar
 
-Stato al 14/11/2026, fine della sessione che ha creato Sonar 1.0.0. Scritto per chi riprende lo sviluppo del **software** (non del modello acustico: per quello vedi [HANDOFF_MODEL.md](HANDOFF_MODEL.md)).
+Stato al 15/11/2026 (Sonar 1.2.0; storia delle sessioni nei §9–14). Scritto per chi riprende lo sviluppo del **software** (non del modello acustico: per quello vedi [HANDOFF_MODEL.md](HANDOFF_MODEL.md)).
 
 ## 1. Cosa vuole l'utente (Ivan Murano)
 
@@ -222,3 +222,28 @@ Prossimi passi:
 4. Pavimento dei livelli: nelle aree rurali il modello non scende sotto ~49 dB di notte (Lden ~58): a Melfi tutti i residenti risultano sopra le soglie OMS. Decisione dell'utente: non correggere; presentare il modello come valido per le aree urbane sopra una certa dimensione. La soglia (abitanti o densità) va ricavata dai dati (es. quota di punti dentro l'intervallo delle variabili di Barcellona, già nei metadati del modello), non inventata.
 5. Nuova release con l'installer aggiornato (l'utente sceglie il file nella finestra «Apri»).
 6. Presentazione del GIS Day con l'utente e Laura (domani): slide dell'architettura già pronte (3 PNG in `docs/img/`), bibliografia in `D:\noise_pollution\docs\LITERATURE_REVIEW_2026-10-14.md`.
+
+## 14. Sonar 1.2.0: popolazione esposta verificata, Dublino (15/11/2026, pomeriggio)
+
+**Prova di Melfi con GHSL** (`D:\noise_pollution\tests\test0\Sonar_Melfi_2026-11-15_0505`, 700 s): residenti 15.781. Il raster GHS-POP 2020 dentro il confine somma 15.781 (calcolo indipendente con rasterio): l'attribuzione è esatta; la differenza dai ~17.000 ISTAT sta nella stima GHSL. Corretti: arrotondamento a 0,1 per cella (la somma del campo `residenti` perdeva 10 residenti; ora 3 decimali nei layer, 2 nel foglio) e colonna «Cella H3» del foglio, che con pandas 3 mostrava il numero di riga (ora `unit_id`, indice H3). Nuovo `tests/test_exposure.py` (conservazione dei residenti, identificativi, tavola IT/EN): 31 test superati su Windows.
+
+**Tavola A4** (`export/exposure_sheet.py`, rifatta con il processo della skill `schematic-figure`: brief, spec, disegno, lettura a freddo; brief e spec in `D:\noise_pollution\outputs\sonar\.diag\tavola_v2` non salvati: sono riassunti qui):
+- riquadri: residenti, Lden ≥ 65 dB, Lnight ≥ 55 dB (quota feriale grande, festivo sotto), classe Lden più frequente. Le soglie OMS non sono più in apertura (a Melfi davano 100% ovunque per il pavimento del modello); restano nel foglio xlsx;
+- tabelle: barra feriale piena e festivo chiara sotto, nessuna barra per gli zeri, riga «senza stima» solo se > 0, quote «< 0,1%» per valori piccoli non nulli, totale uguale al totale dei residenti;
+- riquadro «Un modello verificato sulle misure»: accuratezza su Barcellona (3,6 dB, 0,88) e uso (dove misurare, dove intervenire, quali scenari). Il testo con i numeri compare solo se il modello si chiama Pharos Noise; altrimenti una versione senza numeri;
+- titolo ridotto in automatico per i nomi lunghi.
+- Richiesta dell'utente: testi pubblici promozionali. Non scrivere che Sonar verifica limiti di legge o soglie OMS (il modello ha un pavimento rurale e la verifica di legge richiede metodi normativi): lo si è spiegato all'utente, che ha ricevuto la versione positiva qui sopra.
+
+**Validazione di Dublino: eseguita una volta, esito PARZIALE** (`D:\noise_pollution\outputs\reports\transfer_dublin_2026-11-15.{md,json}`, figure in `outputs\figures`):
+- input: QA `data\processed\20261115T041652Z_dublin_qa` (16 luoghi ammessi); previsioni `data\processed\20261115T115300Z_dublin_points\dublin_sensor_predictions_hourly.parquet` (con `manifest.json`), ottenute da `sonar points` (run `20261115T114722Z_sonar_points_dublin`) su un riquadro attorno ai sensori con 1,5 km di margine (`--bbox=-6.39,53.305,-6.12,53.405`, EPSG:2157), coordinate pubblicate senza spostamenti (4 sensori cadono nell'impronta di un edificio, segnalati); colonne rinominate `pred_<seme>_M3` → `pred_M3_<seme>`, valori invariati; copertura 100% delle ore osservate. Lanci: `.diag\PREVISIONI_DUBLINO.cmd` (39 min), `.diag\AVVIA_VALUTA_DUBLINO.cmd`.
+- prova sintetica prima dell'esecuzione reale, in una copia isolata nel contenitore: lo script ritrova l'errore inserito (bias 1,54, MAE 2,42 dB) e rifiuta la seconda esecuzione.
+- risultati (maggio, 16 luoghi, 11.869 ore): C1 Spearman 0,82 [0,58; 0,92] sì; C2 MAE_c 4,24 vs 5,53 dB (B1) sì; C3 MAE orario 6,87 dB (B1 10,51) no; C4 bias +5,43 dB no. Profilo feriale 0,88. Febbraio e luglio coerenti (Spearman 0,78). Adattato con k = 5 luoghi: MAE 5,82 dB, bias residuo −0,15.
+- Lettura: l'ordinamento spaziale e il ritmo della giornata si trasferiscono; i livelli assoluti sono alti di ~5 dB (coerente con il pavimento visto a Melfi) e richiedono taratura locale. README (paragrafo «Verifica in una città nuova») e `docs/MODEL.md` («Verifica a Dublino») aggiornati con questi numeri, criteri falliti compresi come richiede il protocollo.
+- Trasparenza: nella sola stampa dello schema del QA sono comparsi due valori orari osservati (sensore 01749, 29/04, fuori periodo), senza alcun confronto con previsioni.
+
+**Release 1.2.0**: versione portata a 1.2.0 (`__init__`, `version_info.txt`, `installer.iss`), note in `build/RELEASE_NOTES.md` (popolazione esposta, accuratezza, senza «sperimentali»). Installer ricostruito con `build\output\AAA_DIAG` (BUILD 0, INSTALL 0, selftest OK, 31 test): `Sonar-Setup.exe`, 174.163.163 byte, SHA-256 `98b14492181366024bc9fb91ea027e27074a114762087fa49035a250555416ec`.
+
+**Prossimi passi**
+1. Pavimento dei livelli (§13 punto 4) ora quantificato da Dublino (+5,4 dB di scarto medio): tema per chi sviluppa il modello (`HANDOFF_MODEL.md`), non per il software. Un'opzione «taratura con misure locali» in Sonar sarebbe la risposta naturale (lo scenario adattato del protocollo mostra che 5 sensori bastano a togliere lo scarto).
+2. Prova di Parigi con la popolazione esposta.
+3. Presentazione del GIS Day: usare la tavola nuova di Melfi (`.diag\tavola_v2`) e i numeri di Dublino del README.

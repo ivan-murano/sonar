@@ -54,7 +54,19 @@ Sulle 30 postazioni di Barcellona mai usate in nessuno dei cinque addestramenti 
 
 Febbraio e luglio danno risultati simili (3,7 dB). Gli studi recenti più vicini riportano errori quadratici medi fra 4,4 e 4,9 dB, con dati e protocolli diversi (Helbich et al. 2025, *Sustainable Cities and Society*; Haselhoff et al. 2026, *Journal of Exposure Science & Environmental Epidemiology*).
 
-La verifica su una seconda città, Dublino, con la rete di sensori Sonitus, è in corso con un protocollo fissato e registrato prima di vedere i dati.
+### Verifica a Dublino
+
+Il trasferimento a una città mai vista è stato verificato a Dublino con la rete di sensori Sonitus, secondo un protocollo fissato e registrato (con impronta SHA-256) prima di vedere i dati, con un'unica esecuzione e senza alcun adattamento del modello. Periodo principale maggio 2026, 16 postazioni, 11.869 ore.
+
+| Misura | Pharos Noise | Riferimento solo ora del giorno |
+|---|---|---|
+| Correlazione di rango fra luoghi (Spearman) | 0,82 (IC 90% 0,58–0,92) | — |
+| Errore medio sui livelli dei luoghi, al netto dello scarto di città | 4,2 dB | 5,5 dB |
+| Errore orario medio (MAE) | 6,9 dB | 10,5 dB |
+| Scarto medio (stimato − misurato) | +5,4 dB | +9,4 dB |
+| Correlazione del profilo giornaliero feriale (mediana fra luoghi) | 0,88 | 0,84 |
+
+Esito del protocollo: **parziale**. Superati C1 (ordinamento dei luoghi) e C2 (livelli dei luoghi meglio del riferimento); non superati C3 (errore orario entro 6 dB) e C4 (scarto medio entro 3 dB). In sintesi: l'ordinamento spaziale e il ritmo della giornata si trasferiscono; i livelli assoluti richiedono una taratura locale. Con cinque sensori locali (scenario adattato, separato dal precedente) lo scarto medio si annulla e l'errore orario medio scende a 5,8 dB (intervallo 5–95%: 4,4–7,1 dB). Febbraio e luglio danno risultati coerenti (correlazione di rango 0,78 in entrambi).
 
 ## Bibliografia essenziale
 
