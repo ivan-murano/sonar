@@ -243,7 +243,10 @@ Prossimi passi:
 
 **Release 1.2.0**: versione portata a 1.2.0 (`__init__`, `version_info.txt`, `installer.iss`), note in `build/RELEASE_NOTES.md` (popolazione esposta, accuratezza, senza «sperimentali»). Installer ricostruito con `build\output\AAA_DIAG` (BUILD 0, INSTALL 0, selftest OK, 31 test): `Sonar-Setup.exe`, 174.163.163 byte, SHA-256 `98b14492181366024bc9fb91ea027e27074a114762087fa49035a250555416ec`.
 
+**Release pubblicata**: https://github.com/ivan-murano/sonar/releases/tag/v1.2.0 («Latest», tag creato da GitHub su `main`; il push dei tag dalla sessione è bloccato dal proxy). Richiesta dell'utente: per chi la scarica è la prima versione di Sonar, quindi note senza «novità» o confronti con versioni precedenti. Resta visibile la release v1.1.0: eliminarla solo se l'utente lo chiede.
+
+**README del modello riscritto** (`D:\noise_pollution\README.md`; il precedente in `docs/README_storico_2026-10-14.md`): cosa stima, dati, variabili, addestramento, verifiche (Barcellona, Dublino, Melfi), limiti, regole, mappa dei file. Prossima fase dell'utente: riaddestrare il modello per migliorare l'accuratezza.
+
 **Prossimi passi**
 1. Pavimento dei livelli (§13 punto 4) ora quantificato da Dublino (+5,4 dB di scarto medio): tema per chi sviluppa il modello (`HANDOFF_MODEL.md`), non per il software. Un'opzione «taratura con misure locali» in Sonar sarebbe la risposta naturale (lo scenario adattato del protocollo mostra che 5 sensori bastano a togliere lo scarto).
-2. Prova di Parigi con la popolazione esposta.
-3. Presentazione del GIS Day: usare la tavola nuova di Melfi (`.diag\tavola_v2`) e i numeri di Dublino del README.
+2. Presentazione del GIS Day: usare la tavola nuova di Melfi (`.diag\tavola_v2`) e i numeri di Dublino del README.
