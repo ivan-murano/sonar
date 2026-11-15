@@ -7,7 +7,8 @@ Il manifest attiva gli indicatori con "indicators" e indica le ore di ogni campo
 
 Scale di colore:
 - "city": classi in dB a passi regolari adattate ai valori della città (passi uguali in dB = rapporti
-  di energia uguali), stessa scala per tutte le tavole e i layer della città;
+  di energia uguali). Negli stili dei layer (QML, SLD, .lyrx) una scala per indicatore su tutti i layer
+  della città; nelle tavole PNG una scala unica per tutte le mappe della tavola (vedi sheet_style);
 - "who": classi fisse ancorate alle soglie OMS 2018 per il traffico stradale (53 dB Lden, 45 dB Lnight)
   e alle classi di 5 dB della Direttiva. Da usare solo se il modello dichiara valori confrontabili.
 """
@@ -130,8 +131,28 @@ def styles_for(frames: list, cfg: dict, base_style: dict, language: str) -> dict
             note = {'it': 'scala adattata alla città', 'en': 'scale adapted to the city'}
         result[name] = {'title': INDICATORS[name]['title'], 'unit': base_style.get('unit', 'dB(A)'), 'breaks': breaks, 'colors': colors,
                         'no_data_color': base_style.get('no_data_color', '#d5d9dc'), 'scale': cfg['scale'], 'scale_note': note,
-                        'field': field, 'label': f'{pick(INDICATORS[name]["title"], language)} ({pick(INDICATORS[name]["short"], language)})'}
+                        'field': field, 'label': f'{pick(INDICATORS[name]["title"], language)} ({pick(INDICATORS[name]["short"], language)})',
+                        # regola della scala "city", riusata dalla tavola PNG per la scala unica (sheet_style)
+                        'clip': list(cfg['clip']), 'max_classes': cfg['max_classes'], 'ramp': list(base_style.get('colors') or DEFAULT_RAMP)}
     return result
+
+
+def sheet_style(frames: list, indicator_styles: list[dict]) -> dict | None:
+    """Scala unica per tutte le mappe di una tavola PNG (scala "city"), o None con la scala "who".
+
+    Stessa regola di city_breaks (percentili clip, passi tondi, al massimo max_classes classi), applicata
+    all'insieme dei valori di tutti i riquadri della tavola: ogni indicatore in ogni layer. Se l'intervallo
+    richiede più classi di max_classes, city_breaks allarga il passo invece di tagliare gli estremi.
+    Riguarda solo il disegno: i valori e gli stili dei layer non cambiano."""
+    if not indicator_styles or any(s.get('scale', 'city') != 'city' for s in indicator_styles):
+        return None
+    first = indicator_styles[0]
+    arrays = [f[s['field']].to_numpy(dtype=float) for f in frames for s in indicator_styles if s['field'] in f.columns]
+    values = np.concatenate(arrays) if arrays else np.array([], dtype=float)
+    breaks = city_breaks(values, tuple(first.get('clip', (5, 98))), int(first.get('max_classes', 8)))
+    colors = ramp(first.get('ramp') or DEFAULT_RAMP, len(breaks) + 1)
+    return {'unit': first.get('unit', 'dB(A)'), 'breaks': breaks, 'colors': colors,
+            'no_data_color': first.get('no_data_color', '#d5d9dc'), 'scale': 'city'}
 
 
 def weighted_quantile(values, weights, q: float) -> float:

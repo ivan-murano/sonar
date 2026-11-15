@@ -75,3 +75,59 @@ def test_delivery_without_indicators_keeps_band_maps(tmp_path, model_output, squ
     boundary = square_city.write_boundary(root / 'boundary.gpkg')
     written = export.export_results(model, {'h3': model_output}, root, square_city, boundary, 'it', lambda f, m: None, print)
     assert len(written['png']) == 2 and 'indicators' not in written
+
+
+def _sheet_frames(model_output):
+    import geopandas as gpd
+    from sonar_app.export import health
+    model = default_model()
+    fields = model.output('h3')['map_fields']
+    frames = []
+    for layer in ('feriale', 'festivo'):
+        frame = gpd.read_file(model_output, layer=layer)
+        health.add_to_frame(frame, fields, ['lden', 'lnight'])
+        frames.append((layer, frame))
+    return frames
+
+
+def _render_capture(monkeypatch, tmp_path, model_output, square_city, scale, language):
+    """Disegna la tavola e restituisce la figura matplotlib prima che venga chiusa."""
+    from matplotlib.figure import Figure
+    from sonar_app.export import health, maps
+    frames = _sheet_frames(model_output)
+    cfg = {'items': ['lden', 'lnight'], 'scale': scale, 'clip': [5, 98], 'max_classes': 8}
+    styles = list(health.styles_for([f for _, f in frames], cfg, default_model().style('laeq'), language).values())
+    boundary = square_city.write_boundary(tmp_path / 'boundary.gpkg')
+    import geopandas as gpd
+    captured = {}
+    original = Figure.savefig
+    def savefig(self, *args, **kwargs):
+        captured['fig'] = self
+        return original(self, *args, **kwargs)
+    monkeypatch.setattr(Figure, 'savefig', savefig)
+    path = maps.render_indicators(frames, gpd.read_file(boundary), styles, 'Prova', tmp_path / f'sheet_{scale}_{language}.png', language, 'Modello')
+    assert path.exists() and path.stat().st_size > 0
+    return captured['fig'], styles, frames
+
+
+@pytest.mark.parametrize('language', LANGUAGES)
+def test_indicator_sheet_has_one_shared_scale_and_one_legend(monkeypatch, tmp_path, model_output, square_city, language):
+    from sonar_app.export import health, maps
+    fig, styles, frames = _render_capture(monkeypatch, tmp_path, model_output, square_city, 'city', language)
+    shared = health.sheet_style([f for _, f in frames], styles)
+    colorbars = [ax for ax in fig.axes if ax.get_label() == '<colorbar>' or hasattr(ax, '_colorbar')]
+    assert len(colorbars) == 1
+    legend = colorbars[0]
+    assert legend.get_title() == maps.SHARED_LEGEND[language].format(unit='dB(A)')
+    maps_axes = [ax for ax in fig.axes if ax not in colorbars]
+    norms = [c.norm for ax in maps_axes for c in ax.collections if getattr(c, 'norm', None) is not None and c.get_array() is not None]
+    assert len(norms) == 4                                     # 2 layer x 2 indicatori
+    assert all(list(n.boundaries) == shared['breaks'] for n in norms)
+    texts = ' '.join(t.get_text() for t in fig.texts)
+    assert maps.SCALE_NOTE['city'][language][:30] in texts
+
+
+def test_indicator_sheet_who_scale_keeps_one_legend_per_column(monkeypatch, tmp_path, model_output, square_city):
+    fig, styles, _ = _render_capture(monkeypatch, tmp_path, model_output, square_city, 'who', 'it')
+    colorbars = [ax for ax in fig.axes if ax.get_label() == '<colorbar>' or hasattr(ax, '_colorbar')]
+    assert len(colorbars) == len(styles) == 2
