@@ -45,6 +45,45 @@ def _accelerate_static_features():
     model_prepare.compute_static_features = accelerated
 
 
+def _parallelize_model(code_paths, log):
+    """Fasi a blocchi indipendenti (ricevitori, matrici delle attività, previsione) su più processi.
+
+    Ogni processo chiama la funzione originale del modello sul proprio blocco: risultati identici.
+    Se una firma non è quella attesa (modello aggiornato), quella fase resta com'è. SONAR_PARALLEL=0 disattiva."""
+    if os.environ.get('SONAR_PARALLEL', '1') == '0':
+        return
+    import functools
+    import sonar.predict as model_predict
+    import sonar.receivers as model_receivers
+    import sonar.supports as model_supports
+    from sonar.legacy import activity, engine
+    from sonar_app import parallel
+    city_prediction = engine()
+    hours = activity()
+    # profile_for: funzione pura (categoria -> profilo), chiamata una volta per attività: si memorizzano i risultati
+    if not getattr(hours.profile_for, 'cache_info', None):
+        hours.profile_for = functools.lru_cache(maxsize=None)(hours.profile_for)
+    plan = [
+        (model_supports, 'road_segments', ['ways', 'boundary_metric', 'crs', 'max_length'],
+         lambda f: parallel.parallel_road_segments(f, 'sonar.supports', 'road_segments', code_paths, log)),
+        (model_receivers, 'select_receivers', ['units', 'buildings', 'boundary_metric', 'worldcover_path', 'crs', 'log', 'parts_dir', 'chunk'],
+         lambda f: parallel.parallel_receivers(f, 'sonar.receivers', 'select_receivers', code_paths)),
+        (model_predict, 'program_matrices', ['points', 'places', 'programs', 'chunk'],
+         lambda f: parallel.parallel_program_matrices(f, 'sonar.legacy', 'spatial_program_counts', code_paths, log)),
+        (city_prediction, 'predict_scenarios', ['spatial', 'matrices', 'programs', 'models', 'calendar', 'scenarios', 'chunk_size', 'progress'],
+         lambda f: parallel.parallel_predict(f, city_prediction.__name__, 'predict_scenarios', code_paths)),
+    ]
+    for module, name, expected, make in plan:
+        function = getattr(module, name, None)
+        if function is None or getattr(function, '_sonar_parallel', False):
+            continue
+        if not parallel.signature_matches(function, expected):
+            log(f'Parallelizzazione di {name} non applicata: la funzione del modello è cambiata')
+            continue
+        wrapped = make(function); wrapped._sonar_parallel = True
+        setattr(module, name, wrapped)
+
+
 def run(ctx):
     code = code_root(ctx.model_dir)
     os.environ['SONAR_CODE'] = str(code)
@@ -58,6 +97,7 @@ def run(ctx):
     from sonar.prepare import run_prepare
     from sonar.runs import city_slug
     _accelerate_static_features()
+    _parallelize_model([str(code / 'scripts'), str(code / 'src')], ctx.log)
 
     city = ctx.city
     slug = city_slug(city.get('lau_name') or city['name'])

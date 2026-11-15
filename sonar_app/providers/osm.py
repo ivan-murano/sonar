@@ -46,8 +46,8 @@ def select_extract(index: dict, polygon) -> dict:
     return best[1]
 
 
-def clip_pbf(source: Path, dest: Path, bounds, cancelled=lambda: False, report=lambda f: None) -> dict:
-    """Ritaglio con pyosmium; restituisce i conteggi degli oggetti scritti."""
+def clip_pbf_simple(source: Path, dest: Path, bounds, cancelled=lambda: False, report=lambda f: None) -> dict:
+    """Ritaglio oggetto per oggetto (metodo originale, più lento); restituisce i conteggi degli oggetti scritti."""
     import osmium
     w, s, e, n = bounds
     size = source.stat().st_size
@@ -80,6 +80,105 @@ def clip_pbf(source: Path, dest: Path, bounds, cancelled=lambda: False, report=l
                     writer.add_relation(obj); relations += 1
     tmp.replace(dest)
     return {'tagged_nodes': len(nodes), 'ways': len(ways), 'multipolygons': relations}
+
+
+def clip_pbf(source: Path, dest: Path, bounds, cancelled=lambda: False, report=lambda f: None) -> dict:
+    """Ritaglio con pyosmium; restituisce i conteggi degli oggetti scritti.
+
+    Regola: nodi con tag dentro il riquadro, way con almeno un vertice dentro, multipoligoni con un membro
+    scelto, più i riferimenti all'indietro (BackReferenceWriter). Prima lettura: le coordinate delle way arrivano
+    dal C++ in WKB e il test dei vertici è vettoriale; seconda lettura filtrata per id in C++. File identico al
+    ritaglio oggetto per oggetto (`clip_pbf_simple`), che resta come riserva."""
+    try:
+        return _clip_pbf_fast(source, dest, bounds, cancelled, report)
+    except net.Cancelled:
+        raise
+    except Exception:
+        return clip_pbf_simple(source, dest, bounds, cancelled, report)
+
+
+def _clip_pbf_fast(source: Path, dest: Path, bounds, cancelled, report) -> dict:
+    import numpy as np
+    import osmium
+    w, s, e, n = bounds
+    size = source.stat().st_size
+    index = 'sparse_mem_array' if size < 1_500_000_000 else f'sparse_file_array,{dest.with_suffix(".idx")}'
+    wkb = osmium.geom.WKBFactory()
+    nodes, ways, relations = set(), set(), set()
+    batch_ids, batch_wkb, slow = [], [], []
+
+    def flush():
+        if not batch_ids:
+            return
+        # WKB LineString (esadecimale): 1 byte ordine, 4 tipo, 4 numero di punti, poi coppie di double
+        sizes = np.fromiter(map(len, batch_wkb), dtype=np.int64, count=len(batch_wkb)) // 2
+        raw = np.frombuffer(bytes.fromhex(''.join(batch_wkb)), dtype=np.uint8)
+        starts = np.cumsum(sizes) - sizes
+        little = raw[starts] == 1
+        npts = (sizes - 9) // 16
+        owner = np.repeat(np.arange(len(sizes)), npts)
+        k = np.arange(owner.size) - np.repeat(np.cumsum(npts) - npts, npts)
+        base = starts[owner] + 9 + 16 * k
+        def doubles(offsets):
+            b = raw[offsets[:, None] + np.arange(8)]
+            v = b.copy().view('<f8').ravel()
+            big = ~little[owner]
+            if big.any():
+                v[big] = b[big][:, ::-1].copy().view('<f8').ravel()
+            return v
+        lon, lat = doubles(base), doubles(base + 8)
+        inside = (lon >= w) & (lon <= e) & (lat >= s) & (lat <= n)
+        hit = np.zeros(len(batch_ids), bool); hit[owner[inside]] = True
+        ids = np.asarray(batch_ids, dtype=np.int64)
+        ways.update(ids[hit].tolist())
+        batch_ids.clear(); batch_wkb.clear()
+
+    def inside(location) -> bool:
+        return location.valid() and w <= location.lon <= e and s <= location.lat <= n
+
+    processor = osmium.FileProcessor(str(source)).with_locations(index).with_filter(osmium.filter.EmptyTagFilter())
+    for count, obj in enumerate(processor):
+        if count % 200_000 == 0:
+            if cancelled():
+                raise net.Cancelled()
+            report(min(0.6, count / max(1.0, size / 60) * 0.6))
+        if obj.is_node():
+            if inside(obj.location):
+                nodes.add(obj.id)
+        elif obj.is_way():
+            try:
+                batch_wkb.append(wkb.create_linestring(obj, use_nodes=osmium.geom.use_nodes.ALL))
+                batch_ids.append(obj.id)
+            except Exception:            # posizioni mancanti o way degeneri: controllo nodo per nodo come prima
+                if any(inside(node.location) for node in obj.nodes):
+                    ways.add(obj.id)
+            if len(batch_ids) >= 200_000:
+                flush()
+        elif obj.is_relation():
+            flush()
+            if obj.tags.get('type') == 'multipolygon' and any(
+                    (m.type == 'w' and m.ref in ways) or (m.type == 'n' and m.ref in nodes) for m in obj.members):
+                relations.add(obj.id)
+    flush()
+    # seconda lettura: solo gli oggetti scelti arrivano a Python (filtro per id in C++), stesso ordine del file
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest.with_name(dest.name + '.part.pbf')
+    if tmp.exists():
+        tmp.unlink()
+    wanted = nodes | ways | relations
+    with osmium.BackReferenceWriter(str(tmp), ref_src=str(source), overwrite=True) as writer:
+        processor = osmium.FileProcessor(str(source)).with_filter(osmium.filter.EmptyTagFilter()).with_filter(osmium.filter.IdFilter(wanted))
+        for obj in processor:
+            if obj.is_node():
+                if obj.id in nodes:
+                    writer.add_node(obj)
+            elif obj.is_way():
+                if obj.id in ways:
+                    writer.add_way(obj)
+            elif obj.id in relations:
+                writer.add_relation(obj)
+    tmp.replace(dest)
+    return {'tagged_nodes': len(nodes), 'ways': len(ways), 'multipolygons': len(relations)}
 
 
 def fetch(spec: dict, city, dest_dir: Path, job: Job) -> dict:

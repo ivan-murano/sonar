@@ -91,53 +91,79 @@ class _Rings:
         order = np.argsort(rgeom, kind='stable')
         self.ring_order = order
         self.rcount = np.bincount(rgeom, minlength=len(geoms)); self.rstart = np.cumsum(self.rcount) - self.rcount
+        self.ring_area = shapely.area(shapely.polygons(rings))
 
     def clip_area(self, g, A, D, valid, center):
+        """Area di ogni geometria dentro l'intersezione dei semipiani. Anelli interamente dentro: area intera;
+        interamente fuori da un semipiano: zero; solo gli anelli a cavallo passano dal ritaglio Sutherland-Hodgman."""
         pair, rpos = _ragged(self.rstart[g], self.rcount[g])
         ring = self.ring_order[rpos]
-        rid, vidx = _ragged(self.start[ring], self.n[ring])
+        n_r = self.n[ring]
+        rid, vidx = _ragged(self.start[ring], n_r)
         pts = self.xy[vidx] - center[pair][rid]   # coordinate relative: niente cancellazione numerica
         A = A - center[:, None, :]
-        n_r = self.n[ring].copy()
-        a_all, d_all, v_all = A[pair], D[pair], valid[pair]
-        for j in range(A.shape[1]):
-            active = v_all[:, j]
-            if not active.any():
-                continue
-            if len(pts) == 0:
-                break
-            start = np.cumsum(n_r) - n_r
-            prev = np.arange(len(pts)) - 1
-            first = start[rid]
-            prev[np.arange(len(pts)) == first] = (first + n_r[rid] - 1)[np.arange(len(pts)) == first]
-            a, d = a_all[rid, j], d_all[rid, j]
-            f = d[:, 0] * (pts[:, 1] - a[:, 1]) - d[:, 1] * (pts[:, 0] - a[:, 0])
-            act = active[rid]
-            f = np.where(act, f, 1.0)
-            fe, fs = f, f[prev]
-            ine, ins = fe >= 0, fs >= 0
-            need_i = ine != ins
-            cnt = ine.astype(int) + need_i
-            s = pts[prev]
-            with np.errstate(divide='ignore', invalid='ignore'):
-                t = fs / (fs - fe)
-                inter = s + t[:, None] * (pts - s)
-            out_owner = np.repeat(np.arange(len(pts)), cnt)
-            pos_in = np.arange(out_owner.size) - np.repeat(np.cumsum(cnt) - cnt, cnt)
-            use_inter = need_i[out_owner] & (pos_in == 0)
-            new = np.where(use_inter[:, None], inter[out_owner], pts[out_owner])
-            new_rid = rid[out_owner]
-            n_r = np.bincount(new_rid, minlength=len(n_r))
-            pts, rid = new, new_rid
-        if len(pts) == 0:
-            return np.zeros(len(g))
-        start = np.cumsum(n_r) - n_r
-        nxt = np.arange(len(pts)) + 1
-        last = start[rid] + n_r[rid] - 1
-        nxt[np.arange(len(pts)) == last] = start[rid][np.arange(len(pts)) == last]
-        cross = pts[:, 0] * pts[nxt, 1] - pts[nxt, 0] * pts[:, 1]
-        area = np.abs(np.bincount(rid, weights=cross, minlength=len(n_r))) / 2
+        ar, dr, vr = A[pair], D[pair], valid[pair]                  # semipiani per anello
+        a, d = ar[rid], dr[rid]
+        f = d[..., 0] * (pts[:, None, 1] - a[..., 1]) - d[..., 1] * (pts[:, None, 0] - a[..., 0])
+        inside = (f >= 0) | ~vr[rid]
+        starts = np.cumsum(n_r) - n_r
+        all_in = np.logical_and.reduceat(inside.all(1), starts)
+        all_out = np.logical_and.reduceat(~inside, starts, axis=0).any(1)
+        area = np.where(all_in, self.ring_area[ring], 0.0)
+        crossing = np.flatnonzero(~all_in & ~all_out)
+        if crossing.size:
+            sub_rid, sub_v = _ragged(starts[crossing], n_r[crossing])
+            area[crossing] = _sutherland_hodgman(pts[sub_v], sub_rid, n_r[crossing], ar[crossing], dr[crossing], vr[crossing])
         return np.bincount(pair, weights=area * self.sign[ring], minlength=len(g))
+
+
+def _sutherland_hodgman(pts, rid, n_r, a_r, d_r, v_r):
+    """Area (valore assoluto) degli anelli ritagliati in sequenza dai semipiani (a_r, d_r, v_r per anello)."""
+    n_rings = len(n_r)
+    for j in range(a_r.shape[1]):
+        if len(pts) == 0:
+            break
+        active = v_r[:, j]
+        if not active.any():
+            continue
+        a, d = a_r[rid, j], d_r[rid, j]
+        fj = d[:, 0] * (pts[:, 1] - a[:, 1]) - d[:, 1] * (pts[:, 0] - a[:, 0])
+        fj = np.where(active[rid], fj, 1.0)
+        if (fj >= 0).all():
+            continue
+        start = np.cumsum(n_r) - n_r
+        idx = np.arange(len(pts))
+        prev = idx - 1
+        first = start[rid]
+        is_first = idx == first
+        prev[is_first] = (first + n_r[rid] - 1)[is_first]
+        fe, fs = fj, fj[prev]
+        ine, ins = fe >= 0, fs >= 0
+        need_i = ine != ins
+        cnt = ine.astype(np.int64) + need_i
+        out_owner = np.repeat(idx, cnt)
+        pos_in = np.arange(out_owner.size) - np.repeat(np.cumsum(cnt) - cnt, cnt)
+        use_inter = need_i[out_owner] & (pos_in == 0)
+        new = pts[out_owner]
+        k = np.flatnonzero(use_inter)
+        if k.size:
+            o = out_owner[k]
+            t = fs[o] / (fs[o] - fe[o])
+            sp = pts[prev[o]]
+            new[k] = sp + t[:, None] * (pts[o] - sp)
+        rid = rid[out_owner]
+        n_r = np.bincount(rid, minlength=n_rings)
+        pts = new
+    if len(pts) == 0:
+        return np.zeros(n_rings)
+    start = np.cumsum(n_r) - n_r
+    idx = np.arange(len(pts))
+    nxt = idx + 1
+    last = start[rid] + n_r[rid] - 1
+    is_last = idx == last
+    nxt[is_last] = start[rid][is_last]
+    cross = pts[:, 0] * pts[nxt, 1] - pts[nxt, 0] * pts[:, 1]
+    return np.abs(np.bincount(rid, weights=cross, minlength=n_rings)) / 2
 
 
 class FastSpatialFeatureContext:
