@@ -1,15 +1,15 @@
 VSVersionInfo(
-  ffi=FixedFileInfo(filevers=(1, 2, 0, 0), prodvers=(1, 2, 0, 0), mask=0x3f, flags=0x0, OS=0x40004, fileType=0x1, subtype=0x0, date=(0, 0)),
+  ffi=FixedFileInfo(filevers=(1, 2, 1, 0), prodvers=(1, 2, 1, 0), mask=0x3f, flags=0x0, OS=0x40004, fileType=0x1, subtype=0x0, date=(0, 0)),
   kids=[
     StringFileInfo([StringTable('041004B0', [
       StringStruct('CompanyName', 'Ivan Murano, Laura Ripoli'),
       StringStruct('FileDescription', 'Sonar - mappe del rumore urbano'),
-      StringStruct('FileVersion', '1.2.0'),
+      StringStruct('FileVersion', '1.2.1'),
       StringStruct('InternalName', 'Sonar'),
       StringStruct('LegalCopyright', '(c) 2026 Ivan Murano, Laura Ripoli'),
       StringStruct('OriginalFilename', 'Sonar.exe'),
       StringStruct('ProductName', 'Sonar'),
-      StringStruct('ProductVersion', '1.2.0')])]),
+      StringStruct('ProductVersion', '1.2.1')])]),
     VarFileInfo([VarStruct('Translation', [0x0410, 1200])])
   ]
 )

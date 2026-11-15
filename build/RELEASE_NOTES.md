@@ -1,4 +1,4 @@
-## Sonar 1.2.0
+## Sonar 1.2.1
 
 **Installazione:** scaricare `Sonar-Setup.exe`, aprirlo, accettare la licenza: Sonar si installa per l'utente corrente (non servono diritti di amministratore né altri programmi: Python, Qt, GDAL e il modello sono inclusi) e si avvia. Modello incluso: *Pharos Noise*. Si disinstalla da *Impostazioni → App*. Windows può mostrare l'avviso SmartScreen perché l'installer non è firmato digitalmente: *Ulteriori informazioni → Esegui comunque*.
 
@@ -8,7 +8,7 @@
 
 **Accuratezza:** su 30 postazioni di Barcellona mai usate per l'addestramento l'errore orario medio è di 3,6 dB, con correlazione 0,88. A Dublino, senza alcuna taratura locale, il modello ordina le 16 postazioni Sonitus con correlazione di rango 0,82 (dettagli nel README).
 
-**Risultati:** GeoPackage e File Geodatabase con stili pronti (Lden predefinito, Lnight, LAeq per fascia), una tavola PNG per output, popolazione esposta, dati di input, licenza e fonti.
+**Risultati:** GeoPackage e File Geodatabase con stili pronti (Lden predefinito, Lnight, LAeq per fascia), una tavola PNG per output con una sola scala di colori per Lden e Lnight, popolazione esposta, dati di input, licenza e fonti.
 
 ---
 
@@ -20,4 +20,4 @@
 
 **Accuracy:** at 30 Barcelona stations never used in training the mean hourly error is 3.6 dB, with a correlation of 0.88. In Dublin, with no local calibration, the model ranks the 16 Sonitus stations with a rank correlation of 0.82 (details in the README).
 
-**Results:** GeoPackage and File Geodatabase with ready styles (Lden by default, Lnight, LAeq per time band), one PNG sheet per output, population exposure, input data, license and sources.
+**Results:** GeoPackage and File Geodatabase with ready styles (Lden by default, Lnight, LAeq per time band), one PNG sheet per output with one colour scale for Lden and Lnight, population exposure, input data, license and sources.

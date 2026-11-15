@@ -33,7 +33,7 @@ Sonar_<Città>_<AAAA-MM-GG_HHMM>/
   Risultati/
     GeoPackage/         celle H3 (~100 m) e strade, con gli stili QGIS già applicati
     File Geodatabase/   gli stessi layer per ArcGIS Pro, con gli stili .lyrx
-    Mappe/              una tavola PNG per output: Lden e Lnight, giorno feriale e festivo
+    Mappe/              una tavola PNG per output: Lden e Lnight, giorno feriale e festivo, con una sola legenda
   Dati di input/        confine comunale, OpenStreetMap, Overture Places, ESA WorldCover
   LEGGIMI.txt  LICENZA.txt  AUTORI.txt  fonti_dati.json  registro.txt
 ```

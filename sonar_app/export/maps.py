@@ -105,11 +105,14 @@ NOTE = {
            '{scale}.'),
 }
 SCALE_NOTE = {
-    'city': {'it': 'scala in dB adattata ai valori della città',
-             'en': 'dB scale adapted to the city values'},
+    'city': {'it': 'una sola scala in dB per tutte le mappe della tavola, adattata ai valori della città',
+             'en': 'one dB scale for all the maps of the sheet, adapted to the city values'},
     'who': {'it': 'classi ancorate alle soglie OMS 2018 per il traffico stradale (53 dB Lden, 45 dB Lnight)',
             'en': 'classes anchored to the WHO 2018 road traffic thresholds (53 dB Lden, 45 dB Lnight)'},
 }
+
+SHARED_LEGEND = {'it': '{unit} · scala unica per le mappe della tavola, adattata alla città',
+                 'en': '{unit} · single scale for all the maps of the sheet, adapted to the city'}
 
 
 def _number(value: float, language: str) -> str:
@@ -119,13 +122,20 @@ def _number(value: float, language: str) -> str:
 
 def render_indicators(layers: list[tuple[str, object]], boundary, indicator_styles: list[dict], title: str, path: Path,
                       language: str, model_name: str, dpi=200):
-    """Tavola di sintesi: righe = layer (feriale, festivo), colonne = indicatori (Lden, Lnight), una legenda per colonna."""
+    """Tavola di sintesi: righe = layer (feriale, festivo), colonne = indicatori (Lden, Lnight).
+
+    Scala "city": una sola scala di colori e una sola legenda, in basso al centro, per tutte le mappe della tavola
+    (limiti da health.sheet_style sui valori di tutti i riquadri), così Lden e Lnight si confrontano a vista.
+    Scala "who": classi diverse per indicatore, quindi una legenda per colonna.
+    Cambia solo il disegno: valori, mediane e percentili dei titoli restano quelli dei layer."""
     import matplotlib
     matplotlib.use('Agg')
+    import textwrap
+
     import matplotlib.pyplot as plt
     from matplotlib.cm import ScalarMappable
 
-    from .health import weighted_quantile
+    from .health import sheet_style, weighted_quantile
     first = layers[0][1]
     boundary = boundary.to_crs(first.crs)
     lines = first.geom_type.isin(['LineString', 'MultiLineString']).all()
@@ -134,18 +144,20 @@ def render_indicators(layers: list[tuple[str, object]], boundary, indicator_styl
     aspect = (ymax - ymin) / max(xmax - xmin, 1)
     panel_w = 6.2 if cols > 1 else 9
     panel_h = min(max(panel_w * aspect, 3), 8)
+    shared = sheet_style([frame for _, frame in layers], indicator_styles)
     fig, axes = plt.subplots(rows, cols, figsize=(panel_w * cols, rows * panel_h + 2.2), squeeze=False)
     for c, style in enumerate(indicator_styles):
-        cmap, norm = _colormap(style)
+        drawing = shared or style            # con la scala unica tutti i riquadri hanno gli stessi cmap e norm
+        cmap, norm = _colormap(drawing)
         unit = style.get('unit', '')
         for r, (layer_title, frame) in enumerate(layers):
             ax = axes[r][c]
             column = style['field']
             if lines:
-                draw_lines(ax, frame, column, cmap, norm, 0.4, style.get('no_data_color', '#d5d9dc'))
+                draw_lines(ax, frame, column, cmap, norm, 0.4, drawing.get('no_data_color', '#d5d9dc'))
             else:
                 frame.plot(column=column, ax=ax, cmap=cmap, norm=norm, rasterized=True, linewidth=0,
-                           missing_kwds={'color': style.get('no_data_color', '#d5d9dc')})
+                           missing_kwds={'color': drawing.get('no_data_color', '#d5d9dc')})
             boundary.boundary.plot(ax=ax, color='#222222', linewidth=0.6)
             ax.set_xlim(xmin, xmax); ax.set_ylim(ymin, ymax); ax.set_aspect('equal'); ax.set_axis_off()
             weights = frame.geometry.length if lines else frame.geometry.area
@@ -156,16 +168,24 @@ def render_indicators(layers: list[tuple[str, object]], boundary, indicator_styl
             else:
                 stat = NO_VALUES[language]
             ax.set_title(f'{style["label"]} · {layer_title}\n{stat}', fontsize=10.5)
-        left = (c + 0.12) / cols
-        cax = fig.add_axes([left, 0.085, 0.76 / cols, 0.016])
-        fig.colorbar(ScalarMappable(norm=norm, cmap=cmap), cax=cax, orientation='horizontal', extend='both', ticks=style['breaks'])
-        cax.tick_params(labelsize=8)
-        cax.set_title(f'{pick(style.get("title"), language)} {unit} · {pick(style.get("scale_note"), language)}'.strip(), fontsize=9)
+        if shared is None:                   # scala "who": una legenda per colonna
+            left = (c + 0.12) / cols
+            cax = fig.add_axes([left, 0.085, 0.76 / cols, 0.016])
+            fig.colorbar(ScalarMappable(norm=norm, cmap=cmap), cax=cax, orientation='horizontal', extend='both', ticks=style['breaks'])
+            cax.tick_params(labelsize=8)
+            cax.set_title(f'{pick(style.get("title"), language)} {unit} · {pick(style.get("scale_note"), language)}'.strip(), fontsize=9)
+    if shared is not None:                   # una sola legenda per la tavola, in basso al centro
+        cmap, norm = _colormap(shared)
+        width = 0.5 if cols > 1 else 0.7
+        cax = fig.add_axes([(1 - width) / 2, 0.085, width, 0.018])
+        fig.colorbar(ScalarMappable(norm=norm, cmap=cmap), cax=cax, orientation='horizontal', extend='both', ticks=shared['breaks'])
+        cax.set_xticklabels([f'{b:g}'.replace('.', ',') if language == 'it' else f'{b:g}' for b in shared['breaks']])
+        cax.tick_params(labelsize=9)
+        cax.set_title(SHARED_LEGEND[language].format(unit=shared.get('unit', '')).strip(' ·'), fontsize=10)
     names = ' e '.join(pick(s['title'], language) for s in indicator_styles) if language == 'it' else \
         ' and '.join(pick(s['title'], language) for s in indicator_styles)
     fig.suptitle(title, fontsize=15, fontweight='bold', y=0.995)
-    import textwrap
-    note = NOTE[language].format(indicators=names, scale=SCALE_NOTE[indicator_styles[0].get('scale', 'city')][language])
+    note = NOTE[language].format(indicators=names, scale=SCALE_NOTE['city' if shared is not None else indicator_styles[0].get('scale', 'city')][language])
     fig.text(0.5, 0.03, textwrap.fill(note, width=95 * cols if cols > 1 else 120), fontsize=8, color='#444444', ha='center', va='bottom')
     fig.text(0.5, 0.01, FOOTER[language].format(model=model_name), fontsize=7.5, color='#555555', ha='center')
     fig.subplots_adjust(left=0.01, right=0.99, top=0.92, bottom=0.16, wspace=0.03, hspace=0.18)

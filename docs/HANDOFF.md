@@ -1,6 +1,6 @@
 # Passaggio di consegne — sviluppo del software Sonar
 
-Stato al 15/11/2026 (Sonar 1.2.0; storia delle sessioni nei §9–14). Scritto per chi riprende lo sviluppo del **software** (non del modello acustico: per quello vedi [HANDOFF_MODEL.md](HANDOFF_MODEL.md)).
+Stato al 15/11/2026 (Sonar 1.2.1; storia delle sessioni nei §9–15). Scritto per chi riprende lo sviluppo del **software** (non del modello acustico: per quello vedi [HANDOFF_MODEL.md](HANDOFF_MODEL.md)).
 
 ## 1. Cosa vuole l'utente (Ivan Murano)
 
@@ -250,3 +250,19 @@ Prossimi passi:
 **Prossimi passi**
 1. Pavimento dei livelli (§13 punto 4) ora quantificato da Dublino (+5,4 dB di scarto medio): tema per chi sviluppa il modello (`HANDOFF_MODEL.md`), non per il software. Un'opzione «taratura con misure locali» in Sonar sarebbe la risposta naturale (lo scenario adattato del protocollo mostra che 5 sensori bastano a togliere lo scarto).
 2. Presentazione del GIS Day: usare la tavola nuova di Melfi (`.diag\tavola_v2`) e i numeri di Dublino del README.
+
+## 15. Sonar 1.2.1: scala unica nelle tavole di sintesi (15/11/2026, sera)
+
+**Richiesta dell'utente**: nella tavola PNG di sintesi (Lden e Lnight, feriale e festivo) ogni colonna aveva una scala e una legenda proprie (Stoccarda: Lden 56–72, Lnight 50–64 dB), quindi le quattro mappe sembravano uguali e la differenza tra giorno e notte non si vedeva.
+
+**Cosa cambia** (solo il disegno; valori, mediane e «10% più esposto» invariati):
+- con `"scale": "city"` la tavola ha una sola scala di colori e una sola legenda, in basso al centro, con l'etichetta «dB(A) · scala unica per le mappe della tavola, adattata alla città» (EN: «single scale for all the maps of the sheet, adapted to the city»); aggiornata la nota a piè di tavola (`SCALE_NOTE['city']`);
+- limiti: stessa regola di `city_breaks` (percentili `clip` 5–98, passi tondi 1/2/2,5/5/10 dB, al massimo `max_classes` = 8 classi; se servono più classi si allarga il passo, gli estremi restano), applicata all'insieme dei valori di tutti i riquadri della tavola (Lden e Lnight, feriale e festivo). Vale per la tavola delle celle H3 e per quella delle strade;
+- con `"scale": "who"` (non attiva) restano classi e legenda per colonna, come prima;
+- invariati: stili dei layer (QML, SLD, `.lyrx`, una scala per indicatore), tavola della popolazione esposta, modello, nomi dei file, manifest.
+
+**File**: `sonar_app/export/maps.py` (`render_indicators`, `SHARED_LEGEND`, `SCALE_NOTE`), `sonar_app/export/health.py` (`sheet_style`; gli stili portano `clip`, `max_classes`, `ramp`), `sonar_app/export/docs.py` (testo del LEGGIMI), `docs/MODEL_CONTRACT.md`, `README.md`, test in `tests/test_health.py` e `tests/test_export.py`; versione 1.2.1 in `sonar_app/__init__.py`, `build/version_info.txt`, `build/installer.iss`, `build/RELEASE_NOTES.md`.
+
+**Verifica**: 36 test superati nel contenitore (Linux, Python 3.13). Tavole di Stoccarda rigenerate dai GeoPackage della consegna 1.2.0 (`Sonar_Stoccarda_2026-11-15_1950`): limiti condivisi 50–70 dB a passi di 2,5 dB per entrambe le tavole; le mappe Lnight sono nettamente più chiare delle Lden, una sola legenda, nessun testo sovrapposto.
+
+**Per arrivare agli utenti**: ricostruire l'installer sul PC dell'utente con `build\output\AAA_DIAG.cmd` e pubblicare una nuova release (la fa l'utente su GitHub).

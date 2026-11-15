@@ -98,12 +98,15 @@ Direttiva 2002/49/CE (giorno 07–19, sera 19–23 +5 dB, notte 23–07 +10 dB),
 della fascia che la contiene. Effetti nella consegna:
 
 - GPKG: stili Lden (predefinito), Lnight e lo stile `style` su `style_field`; `.lyrx` su Lden;
-- PNG: **una tavola per output** (righe = layer, colonne = indicatori), al posto delle tavole per fascia.
+- PNG: **una tavola per output** (righe = layer, colonne = indicatori), al posto delle tavole per fascia; con `"scale": "city"`
+  una sola scala di colori e una sola legenda per tutte le mappe della tavola.
 
 `scale`: `"city"` = classi a passi regolari in dB (1, 2, 2,5, 5 o 10 dB, al massimo `max_classes`) tra i percentili `clip`
-dei valori della città, una sola scala per indicatore su tutti i layer e gli output; `"who"` = classi fisse ancorate alle
+dei valori della città: negli stili dei layer una scala per indicatore su tutti i layer e gli output, nelle tavole PNG una
+scala unica calcolata con la stessa regola sui valori di tutti i riquadri della tavola (Lden e Lnight, feriale e festivo); `"who"` = classi fisse ancorate alle
 soglie OMS 2018 per il traffico stradale (53 dB Lden, 45 dB Lnight) e alle classi di 5 dB della Direttiva. Usare `"who"`
-solo quando i valori del modello sono confrontabili con livelli in facciata (oggi non lo sono: vedi `HANDOFF_MODEL.md`).
+solo quando i valori del modello sono confrontabili con livelli in facciata (oggi non lo sono: vedi `HANDOFF_MODEL.md`);
+con `"who"` la tavola PNG ha una legenda per colonna.
 
 ## Funzione `run(ctx)`
 
