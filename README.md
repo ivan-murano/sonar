@@ -1,14 +1,15 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="sonar_app/assets/logo_dark.png">
-    <img src="sonar_app/assets/logo_light.png" alt="Sonar" width="420">
-  </picture>
-</p>
-
 <h3 align="center">
   <a href="https://github.com/ivan-murano/sonar/releases/latest/download/Sonar-Setup.exe">⬇ Scarica Sonar per Windows · Download Sonar for Windows</a>
 </h3>
 <p align="center"><code>Sonar-Setup.exe</code> · Windows 10/11 64 bit · circa 170 MB</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="sonar_app/assets/logo_dark.png">
+    <img src="sonar_app/assets/logo_light.png" alt="Sonar" width="260">
+  </picture>
+</p>
+
 
 **Sonar** calcola la mappa del rumore urbano di una città europea a partire dal suo nome. Si scrive la città, si preme *Avvia*: Sonar trova il confine comunale, scarica i dati aperti che servono, applica il proprio modello acustico e consegna una cartella pronta per QGIS e ArcGIS, con il livello sonoro stimato ogni 100 metri e su ogni tratto di strada, ora per ora, in un giorno feriale e in un festivo. Tutto gira sul proprio PC, senza account e senza dati da preparare: per una città come Parigi bastano circa dieci minuti.
 
@@ -95,13 +96,13 @@ Sonar non ha account, non contiene telemetria e non invia nulla agli autori: Iva
 
 ## Autori e licenza
 
-Ivan Murano e Laura Ripoli. Software e modello sono distribuiti secondo [LICENSE.txt](LICENSE.txt); le licenze delle librerie incluse sono in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Ivan Murano e Laura Ripoli. Software e modello sono distribuiti secondo [LICENSE.txt](LICENSE.txt); le licenze delle librerie incluse sono in [THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md).
 
 ## Sviluppo
 
 ```
 py -3.12 -m venv .venv
-.venv\Scripts\python -m pip install -r requirements-build.txt
+.venv\Scripts\python -m pip install -r build/requirements-build.txt
 set SONAR_MODEL_CODE=D:\noise_pollution          rem codice del modello acustico
 .venv\Scripts\python -m sonar_app                rem interfaccia
 .venv\Scripts\python -m sonar_app --selftest     rem controllo dell'installazione

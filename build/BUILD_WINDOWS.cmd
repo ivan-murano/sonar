@@ -50,7 +50,7 @@ echo Creo l'ambiente di build con: %BASE%
 %BASE% -m venv "%ROOT%\.venv-build"
 if errorlevel 1 goto fail
 :have_venv
-"%PY%" -m pip install --disable-pip-version-check -q -r requirements-build.txt
+"%PY%" -m pip install --disable-pip-version-check -q -r build\requirements-build.txt
 if errorlevel 1 goto fail
 
 rem --- verifiche --------------------------------------------------------------
@@ -68,8 +68,8 @@ if errorlevel 1 goto fail
 if errorlevel 1 goto fail
 "%PY%" build\collect_licenses.py dist\Sonar
 copy /y LICENSE.txt dist\Sonar\ >nul
-copy /y AUTHORS.txt dist\Sonar\ >nul
-copy /y THIRD_PARTY_NOTICES.md dist\Sonar\ >nul
+copy /y docs\AUTHORS.txt dist\Sonar\ >nul
+copy /y docs\THIRD_PARTY_NOTICES.md dist\Sonar\ >nul
 :exe_ready
 echo.
 echo Controllo dell'eseguibile...

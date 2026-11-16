@@ -64,7 +64,7 @@ hidden |= {'sklearn.ensemble', 'sklearn.utils._typedefs', 'sklearn.utils._heap',
            'pyarrow.fs', 'zoneinfo', 'tzdata', 'sqlite3', 'matplotlib.backends.backend_agg', 'PIL.PngImagePlugin', 'PySide6.QtSvg'}
 
 datas = [(str(p), str(p.parent.relative_to(ROOT))) for p in (ROOT / 'sonar_app' / 'assets').rglob('*') if p.is_file()]
-datas += [(str(ROOT / name), '.') for name in ('LICENSE.txt', 'AUTHORS.txt', 'THIRD_PARTY_NOTICES.md')]
+datas += [(str(ROOT / name), '.') for name in ('LICENSE.txt', 'docs/AUTHORS.txt', 'docs/THIRD_PARTY_NOTICES.md')]
 for package in ('pyogrio', 'rasterio', 'pyproj', 'holidays', 'overturemaps', 'certifi'):   # dati GDAL/PROJ, tabelle, certificati
     datas += collect_data_files(package, excludes=['**/tests/**'])
 
