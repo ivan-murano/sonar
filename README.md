@@ -110,4 +110,4 @@ set SONAR_MODEL_CODE=D:\noise_pollution          rem codice del modello acustico
 build\BUILD_WINDOWS.cmd                          rem eseguibile e installer (build\output\Sonar-Setup.exe)
 ```
 
-Documentazione tecnica: [contratto del modello](docs/MODEL_CONTRACT.md), [passaggio di consegne del software](docs/HANDOFF.md), [passaggio di consegne del modello](docs/HANDOFF_MODEL.md).
+Documentazione tecnica: [contratto del modello](docs/MODEL_CONTRACT.md), [passaggio di consegne del modello](docs/HANDOFF_MODEL.md).
