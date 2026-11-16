@@ -2,7 +2,7 @@
   "contract": "sonar-model/1",
   "id": "m3_barcellona",
   "version": "1.0.0",
-  "default": true,
+  "default": false,
   "name": {"it": "modello acustico di Sonar", "en": "Sonar acoustic model"},
   "authors": ["Ivan Murano", "Laura Ripoli"],
   "documentation_url": "https://github.com/ivan-murano/sonar/blob/main/docs/MODEL.md",

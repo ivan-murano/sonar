@@ -8,7 +8,7 @@ from sonar_app import model_api
 
 def test_bundled_model_manifest_is_valid():
     model = model_api.default_model()
-    assert model.id == 'm3_barcellona'
+    assert model.id == 'm4_barcellona_dublino'
     assert {i['provider'] for i in model.manifest['inputs']} <= set(model_api.KNOWN_PROVIDERS)
     assert callable(model.entrypoint())
 

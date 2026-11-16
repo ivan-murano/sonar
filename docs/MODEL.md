@@ -1,5 +1,31 @@
 # Il modello acustico di Sonar
 
+## Versione M4 (predefinita da novembre 2026)
+
+M4 = stessa pipeline e stesse variabili della versione M3 descritta sotto, più tre novità:
+
+1. **Addestramento su Barcellona e Dublino.** Dublino porta sensori in parchi e spazi aperti, che a Barcellona mancano. I 16 luoghi di Dublino sono divisi in 5 gruppi: ogni modello ne esclude uno, che serve da verifica.
+2. **Nuove variabili** (pacchetto `noise_m4`, 58 colonne `x_*`):
+   - ferrovie e tram **in superficie** entro 100/250/500 m (gallerie e binari di servizio esclusi; metro in superficie come ferrovia leggera), stazioni entro 250/500 m;
+   - distanza dalla ferrovia, dalla strada principale e dall'autostrada più vicine (fino a 2 km);
+   - uso del suolo OpenStreetMap (verde, acqua, industriale, residenziale, commerciale) e copertura ESA WorldCover (verde, acqua, costruito) entro 100/250/500 m;
+   - attività Overture per gruppo con effetto sul rumore (vita notturna, spettacolo, sport, trasporti, parcheggi, industria, scuole, parchi, porto, emergenza, aeroporto, carburante). Overture è la fonte dei punti di interesse; da OpenStreetMap solo incroci/semafori e cantieri, per non contare due volte gli stessi luoghi.
+   - Classificazione di tag OSM e categorie Overture: `configs/noise_tags_v2.json`.
+3. **Nessuna variabile di popolazione** (non ci sono stime di popolazione nel modello).
+
+| Verifica (stesso metodo per M3 e M4) | M3 | M4 |
+|---|---|---|
+| Barcellona, luoghi di verifica, 22–31 maggio: errore orario medio per luogo | 4,46 dB | 4,23 dB |
+| Dublino, luoghi fuori campione, maggio: errore orario medio per luogo | 6,87 dB | 5,41 dB |
+| Dublino: scarto medio (sovrastima) | +5,4 dB | +2,0 dB |
+| Copertura della forbice 90% (Barcellona / Dublino) | 85% / 63% | 86% / 75% |
+| Napoli contro mappe strategiche ufficiali 2022 (EEA, Lden, 7.292 celle): correlazione di rango | 0,44 | 0,50 |
+| Napoli contro mappe ufficiali: scarto medio | +7,7 dB | +5,2 dB |
+
+Le mappe ufficiali sono anch'esse un modello (CNOSSOS-EU, 4 m, media annua): il confronto misura l'accordo, non l'accuratezza.
+
+---
+
 *English summary: the Sonar acoustic model is a machine-learning model (gradient boosting) trained on the Barcelona acoustic sensor network. It describes every outdoor calculation point by its urban context within 100, 250 and 500 m (roads, buildings, points of interest, businesses open at that hour) plus the hour, day type and school calendar, and estimates hourly LAeq for a school weekday and a Sunday/holiday. Five models are combined by energy averaging into six time bands. At 30 Barcelona stations never used for training the hourly mean absolute error is 3.6 dB (correlation 0.88); at time-band level it is 3.1 dB.*
 
 ## Idea
