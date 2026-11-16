@@ -70,8 +70,8 @@ def test_share_formatting():
     assert exposure._pct(1, 8, 'en') == '12.5%'
 
 
-def test_accuracy_text_depends_on_model_id_not_on_name(tmp_path, monkeypatch):
-    """I numeri di accuratezza compaiono solo per il modello a cui si riferiscono (id del manifest), qualunque sia il nome."""
+def test_sheet_shows_only_exposure_numbers(tmp_path, monkeypatch):
+    """La tavola A4 riporta solo le persone per fascia: niente testi sul modello o sulla sua accuratezza."""
     from matplotlib.figure import Figure
     raster, boundary, frame, _ = _case(tmp_path)
     result = exposure.compute([('Giorno feriale scolastico', 'feriale', frame)], raster, boundary)
@@ -82,9 +82,8 @@ def test_accuracy_text_depends_on_model_id_not_on_name(tmp_path, monkeypatch):
         return original(self, *args, **kwargs)
     monkeypatch.setattr(Figure, 'savefig', savefig)
     exposure.render_png(tmp_path / 'a.png', result, 'Prova', 'modello acustico di Sonar', 'it', model_id='m3_barcellona')
-    exposure.render_png(tmp_path / 'b.png', result, 'Prova', 'modello acustico di Sonar', 'it', model_id='altro')
     exposure.render_png(tmp_path / 'c.png', result, 'Prova', 'Altro modello', 'en')
     joined = [' '.join(texts) for texts in seen]
-    assert '3,6 dB' in joined[0] and 'Il modello stima' in joined[0]
-    assert '3,6 dB' not in joined[1] and '3.6 dB' not in joined[2]
-    assert all('Sonar' in texts and not any(t.startswith('Sonar ·') for t in texts) for texts in seen)   # piè di pagina: solo «Sonar»
+    assert all('3,6' not in j and '3.6' not in j and 'modello' not in j.lower() and 'model ' not in j.lower() for j in joined)
+    assert 'Quante persone vivono' in joined[0] and 'How many people live' in joined[1]
+    assert all('Sonar' in texts for texts in seen)

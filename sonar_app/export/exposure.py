@@ -40,7 +40,14 @@ TXT = {
                                 'quanti residenti vivono in ogni classe di esposizione e dove: la base per decidere dove misurare, dove intervenire '
                                 'per primi e quali scenari confrontare.'),
            'of_residents': 'dei residenti',
-           'total_label': 'Residenti nel comune', 'unit': 'residenti'},
+           'total_label': 'Residenti nel comune', 'unit': 'residenti',
+           'sheet_sub': 'Quante persone vivono in ogni fascia di rumore',
+           'tile_total': 'Residenti', 'tile_total_sub': 'nel comune', 'tile_day': 'Oltre 65 dB nella giornata', 'tile_night': 'Oltre 55 dB di notte',
+           'tbl_day': 'Nell’arco della giornata', 'tbl_day_hint': 'Livello medio di giorno, sera e notte (Lden), {day}',
+           'tbl_night': 'Di notte', 'tbl_night_hint': 'Livello medio dalle 23 alle 7 (Lnight), {day}',
+           'col_band': 'Fascia (dB)', 'col_people': 'Persone', 'col_share': 'Quota',
+           'band_below': 'meno di {v}', 'band_above': '{v} e oltre',
+           'sheet_bands': 'Fasce di rumore della Direttiva europea 2002/49/CE.'},
     'en': {'title': '{city} — population exposed to noise', 'subtitle': 'Residents by Lden and Lnight class · {model} · GHS-POP 2020 population',
            'total': 'Residents', 'who_lden': 'Lden ≥ 53 dB', 'who_lnight': 'Lnight ≥ 45 dB', 'who': 'WHO 2018 thresholds',
            'end_lden': 'Lden ≥ 55 dB', 'end_lnight': 'Lnight ≥ 50 dB', 'end': 'Directive 2002/49/EC mapping thresholds',
@@ -63,7 +70,14 @@ TXT = {
                                 'show how many residents live in each exposure class and where: the basis for deciding where to measure, where '
                                 'to act first and which scenarios to compare.'),
            'of_residents': 'of residents',
-           'total_label': 'Residents in the municipality', 'unit': 'residents'},
+           'total_label': 'Residents in the municipality', 'unit': 'residents',
+           'sheet_sub': 'How many people live in each noise band',
+           'tile_total': 'Residents', 'tile_total_sub': 'in the municipality', 'tile_day': 'Above 65 dB over the day', 'tile_night': 'Above 55 dB at night',
+           'tbl_day': 'Over the whole day', 'tbl_day_hint': 'Average level over day, evening and night (Lden), {day}',
+           'tbl_night': 'At night', 'tbl_night_hint': 'Average level from 11 pm to 7 am (Lnight), {day}',
+           'col_band': 'Band (dB)', 'col_people': 'People', 'col_share': 'Share',
+           'band_below': 'below {v}', 'band_above': '{v} and above',
+           'sheet_bands': 'Noise bands of the European Directive 2002/49/EC.'},
 }
 
 
