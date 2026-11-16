@@ -1,3 +1,20 @@
+## Sonar 1.3.0
+
+**Novità: modello acustico M4.** Il modello ora è addestrato sui sensori di Barcellona e di Dublino e usa anche ferrovie e tram in superficie, stazioni, distanze da ferrovie, strade principali e autostrade, uso del suolo (OpenStreetMap, ESA WorldCover) e le attività Overture per tipo. Sovrastima molto minore negli spazi aperti e nei parchi.
+
+| Verifica (stesso metodo) | M3 (1.2.1) | M4 (1.3.0) |
+|---|---|---|
+| Barcellona, postazioni di verifica: errore orario medio per luogo | 4,46 dB | 4,23 dB |
+| Dublino, postazioni escluse dall'addestramento: errore orario medio | 6,87 dB | 5,41 dB |
+| Dublino: sovrastima media | +5,4 dB | +2,0 dB |
+| Napoli contro le mappe strategiche ufficiali EEA 2022 (Lden): correlazione | 0,44 | 0,50 |
+
+Il modello M3 resta incluso (non predefinito). Tutto il resto come nella 1.2.1.
+
+**Novelty: M4 acoustic model**, trained on Barcelona and Dublin sensors, adding surface railways and trams, stations, distances to railways/main roads/motorways, land use (OpenStreetMap, ESA WorldCover) and Overture places by type. Much less overestimation in open spaces and parks. Barcelona 4.46→4.23 dB, Dublin (out of sample) 6.87→5.41 dB, Dublin bias +5.4→+2.0 dB, Napoli vs official EEA 2022 maps rank correlation 0.44→0.50. M3 remains included (not default).
+
+---
+
 ## Sonar 1.2.1
 
 **Installazione:** scaricare `Sonar-Setup.exe`, aprirlo, accettare la licenza: Sonar si installa per l'utente corrente (non servono diritti di amministratore né altri programmi: Python, Qt, GDAL e il modello sono inclusi) e si avvia. Il modello acustico è incluso. Si disinstalla da *Impostazioni → App*. Windows può mostrare l'avviso SmartScreen perché l'installer non è firmato digitalmente: *Ulteriori informazioni → Esegui comunque*.
