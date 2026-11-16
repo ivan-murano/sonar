@@ -33,6 +33,14 @@ def style_sheet(c) -> str:
     """
 
 
+
+MIN_POPULATION = 50_000   # soglia d'uso consigliata: il modello è addestrato su sensori urbani
+
+
+def _number(value, language):
+    text = f'{int(value):,}'
+    return text if language == 'en' else text.replace(',', '.')
+
 class Movable:
     """Finestra senza cornice di sistema spostata trascinando lo sfondo."""
 
@@ -146,7 +154,9 @@ class MainWindow(Movable, QWidget):
         self.search.activated.connect(self.on_start)
         self.search.submitted.connect(self.on_submit)
         self.search.edit.textEdited.connect(self.on_text_edited)
-        row = QHBoxLayout(); row.addStretch(1); row.addWidget(self.search); row.addStretch(1); lay.addLayout(row); lay.addSpacing(16)
+        row = QHBoxLayout(); row.addStretch(1); row.addWidget(self.search); row.addStretch(1); lay.addLayout(row); lay.addSpacing(8)
+        self.scope = QLabel(); self.scope.setObjectName('detail'); self.scope.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.scope.setFont(font(11)); self.scope.setWordWrap(True); lay.addWidget(self.scope); lay.addSpacing(12)
 
         self.status_box = QWidget(); sb = QVBoxLayout(self.status_box); sb.setContentsMargins(0, 0, 0, 0); sb.setSpacing(6)
         self.progress = ProgressLine(); self.progress.setFixedWidth(332)
@@ -192,6 +202,7 @@ class MainWindow(Movable, QWidget):
         self.lang_toggle.set_index(LANGUAGES.index(language), animate)
         self.subtitle.setText(t('subtitle', language))
         self.search.edit.setPlaceholderText(t('placeholder', language))
+        self.scope.setText(t('scope_note', language, pop=_number(MIN_POPULATION, language)))
         self.search.set_button(t('cancel' if self.process else 'start', language), not self.busy_lookup)
         self.btn_min.setToolTip(t('minimize', language)); self.btn_close.setToolTip(t('close', language))
         self.theme_toggle.setToolTip(t('theme_tip', language)); self.lang_toggle.setToolTip(t('language_tip', language))
@@ -218,6 +229,13 @@ class MainWindow(Movable, QWidget):
         area = f'{c.area_km2:,.0f}' if self.language == 'en' else f'{c.area_km2:,.0f}'.replace(',', '.')
         self.show_status(t('city_found', self.language, name=c.name, country=c.country_code, area=area),
                          t('city_hint', self.language, lau=c.gisco_id or c.lau_id, year=c.lau_year))
+        if c.population and c.population < MIN_POPULATION:   # avviso su riga propria, a capo se serve
+            warning = t('small_city', self.language, pop=_number(c.population, self.language), min=_number(MIN_POPULATION, self.language))
+            self.detail.setWordWrap(True)
+            self.detail.setText(self.detail.text() + '\n' + warning)
+            self.detail.setMinimumHeight(self.detail.heightForWidth(self.detail.width()))
+        else:
+            self.detail.setWordWrap(False); self.detail.setMinimumHeight(0)
         self.action.hide()
 
     def set_lookup(self, busy: bool):

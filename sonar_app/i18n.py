@@ -8,6 +8,10 @@ STRINGS = {
     # interfaccia
     'subtitle': {'it': 'CALCOLATORE DI INQUINAMENTO ACUSTICO IN CITTÀ', 'en': 'URBAN NOISE POLLUTION CALCULATOR'},
     'placeholder': {'it': 'Inserisci città', 'en': 'Enter city'},
+    'scope_note': {'it': 'Più accurato nelle aree urbanizzate · pensato per città con almeno {pop} abitanti',
+                   'en': 'Most accurate in built-up areas · designed for cities with at least {pop} inhabitants'},
+    'small_city': {'it': 'Attenzione: {pop} abitanti, sotto i {min} consigliati. Fuori dai centri abitati le stime sono poco affidabili.',
+                   'en': 'Note: {pop} inhabitants, below the recommended {min}. Outside built-up areas estimates are less reliable.'},
     'start': {'it': 'Avvia', 'en': 'Start'},
     'cancel': {'it': 'Annulla', 'en': 'Cancel'},
     'open_folder': {'it': 'Apri cartella', 'en': 'Open folder'},

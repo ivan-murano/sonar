@@ -2,6 +2,7 @@
   <a href="https://github.com/ivan-murano/sonar/releases/latest/download/Sonar-Setup.exe">⬇ Scarica Sonar per Windows · Download Sonar for Windows</a>
 </h3>
 <p align="center"><code>Sonar-Setup.exe</code> · Windows 10/11 64 bit · circa 170 MB</p>
+<p align="center"><em>Pensato per città con almeno 50.000 abitanti; più accurato nelle aree urbanizzate · Designed for cities with at least 50,000 inhabitants; most accurate in built-up areas</em></p>
 
 <p align="center">
   <picture>
