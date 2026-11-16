@@ -2,7 +2,7 @@
   "contract": "sonar-model/1",
   "id": "m4_barcellona_dublino",
   "version": "2.0.0",
-  "default": true,
+  "default": false,
   "name": {
     "it": "modello acustico di Sonar (M4, Barcellona + Dublino)",
     "en": "Sonar acoustic model (M4, Barcelona + Dublin)"

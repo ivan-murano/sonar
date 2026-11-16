@@ -1,6 +1,8 @@
 # Il modello acustico di Sonar
 
-## Versione M4 (predefinita da novembre 2026)
+## Versione M4 (sperimentale, non predefinita)
+
+M4 è incluso ma **non è il modello predefinito**: nelle aree rurali e aperte (es. Melfi) stima livelli più alti di M3 e appiattisce il contrasto fra strade e campagna. Le verifiche sotto usano solo sensori urbani e non vedono questo difetto.
 
 M4 = stessa pipeline e stesse variabili della versione M3 descritta sotto, più tre novità:
 
