@@ -20,6 +20,7 @@
       "src/**/*.py",
       "scripts/**/*.py",
       "configs/**/*",
+      "models/20261013T133952Z_activity_hours/*_M3.joblib",
       "models/20261013T133952Z_activity_hours/programs.json",
       "models/20261116T2000Z_m4_bcn_dub/*_M4.joblib",
       "models/20261116T2000Z_m4_bcn_dub/calibration_contexts.parquet",
